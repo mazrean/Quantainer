@@ -1,0 +1,133 @@
+openapi: 3.0.2
+servers:
+  - url: http://localhost:3000/api/v1
+info:
+  description: 'QuantainerのAPI'
+  version: '1.0.0'
+  title: 'Quantainer API'
+  contact:
+    name: mazrean
+    url: 'https://github.com/mazrean/Quantainer'
+tags:
+  - name: oauth2
+  - name: user
+paths:
+  /oauth2/callback:
+    parameters:
+      - name: code
+        in: query
+        required: true
+        description: OAuth2.0のcode
+        schema:
+          type: string
+    get:
+      tags:
+        - oauth2
+      summary: OAuthのコールバック
+      description: OAuthのコールバック
+      operationId: callback
+      responses:
+        "200":
+          description: 成功
+        "400":
+          description: codeが誤っているとき
+        "500":
+          description: 予期しないエラー
+  /oauth2/generate/code:
+    get:
+      tags:
+        - oauth2
+      summary: OAuthのcode_challengeとかの取得
+      description: OAuthのcode_challengeとかの取得
+      operationId: getGeneratedCode
+      responses:
+        "303":
+          description: 成功。traQの認可画面に遷移する。
+          headers: 
+            Set-Cookie:
+              schema: 
+                type: string
+                example: sessions=abcde12345; Path=/; HttpOnly
+        "500":
+          description: 予期しないエラー
+  /oauth2/logout:
+    post:
+      tags:
+        - oauth2
+      summary: ログアウト
+      description: ログアウト
+      operationId: postLogout
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /users/me:
+    get:
+      tags:
+        - user
+      summary: 自分の情報の取得
+      description: 自分の情報の取得
+      operationId: getMe
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /users:
+    get:
+      tags:
+        - user
+      summary: traQの全ユーザー取得
+      description: traQの全ユーザー取得
+      operationId: getUsers
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+
+components:
+  securitySchemes:
+    traPMemberAuth:
+      type: apiKey
+      in: cookie
+      name: sessions
+  schemas:
+    User:
+      description: ユーザー
+      type: object
+      properties:
+        id:
+          description: traQのID（UUID）
+          type: string
+          example: mazrean
+        name:
+          description: traQID（UUIDでない方）
+          type: string
+          example: eb4a287d-15d9-4f12-8fff-bd088b12ba80
+      required:
+        - userId
+        - name

@@ -109,7 +109,6 @@ func (db *DB) Transaction(ctx context.Context, txOption *sql.TxOptions, fn func(
 	return nil
 }
 
-//nolint:unused
 func (db *DB) getDB(ctx context.Context) (*gorm.DB, error) {
 	iDB := ctx.Value(pkgContext.DBKey)
 	if iDB == nil {

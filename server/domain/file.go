@@ -28,7 +28,7 @@ func (f *File) GetID() values.FileID {
 	return f.id
 }
 
-func (f *File) GetFileType() values.FileType {
+func (f *File) GetType() values.FileType {
 	return f.fileType
 }
 

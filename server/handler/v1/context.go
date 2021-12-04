@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	sessionContextKey  = "session"
+	sessionContextKey = "session"
 )
 
 func getSession(c echo.Context) (*sessions.Session, error) {

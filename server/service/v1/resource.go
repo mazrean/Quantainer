@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/mazrean/Quantainer/domain"
@@ -93,4 +94,21 @@ func (r *Resource) GetResources(ctx context.Context, params *service.ResourceSea
 	}
 
 	return resources, nil
+}
+
+func (r *Resource) DownloadResourceFile(ctx context.Context, resourceID values.ResourceID, writer io.Writer) (*domain.File, error) {
+	file, err := r.fileRepository.GetFileByResourceID(ctx, resourceID)
+	if errors.Is(err, repository.ErrRecordNotFound) {
+		return nil, service.ErrNoResource
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resource: %w", err)
+	}
+
+	err = r.fileStorage.GetFile(ctx, file, writer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+
+	return file, nil
 }

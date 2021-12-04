@@ -1,3 +1,5 @@
 .vscode
 mock
 .env
+tmp
+uploads

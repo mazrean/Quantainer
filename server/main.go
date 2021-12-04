@@ -56,20 +56,69 @@ func main() {
 		panic("ENV FILE_PATH is not set")
 	}
 
+	var (
+		swiftAuthURL    common.SwiftAuthURL
+		swiftUserName   common.SwiftUserName
+		swiftPassword   common.SwiftPassword
+		swiftTenantID   common.SwiftTenantID
+		swiftTenantName common.SwiftTenantName
+		swiftContainer  common.SwiftContainer
+	)
+	if isProduction {
+		strSwiftAuthURL, ok := os.LookupEnv("OS_AUTH_URL")
+		if !ok {
+			panic("ENV OS_AUTH_URL is not set")
+		}
+		swiftAuthURL, err = url.Parse(strSwiftAuthURL)
+		if err != nil {
+			panic(fmt.Errorf("failed to parse swiftAuthURL: %w", err))
+		}
+
+		strSwiftUserName, ok := os.LookupEnv("OS_USERNAME")
+		if !ok {
+			panic("ENV OS_USERNAME is not set")
+		}
+		swiftUserName = common.SwiftUserName(strSwiftUserName)
+
+		strSwiftPassword, ok := os.LookupEnv("OS_PASSWORD")
+		if !ok {
+			panic("ENV OS_PASSWORD is not set")
+		}
+		swiftPassword = common.SwiftPassword(strSwiftPassword)
+
+		strSwiftTenantID, ok := os.LookupEnv("OS_TENANT_ID")
+		if !ok {
+			panic("ENV OS_TENANT_ID is not set")
+		}
+		swiftTenantID = common.SwiftTenantID(strSwiftTenantID)
+
+		strSwiftTenantName, ok := os.LookupEnv("OS_TENANT_NAME")
+		if !ok {
+			panic("ENV OS_TENANT_NAME is not set")
+		}
+		swiftTenantName = common.SwiftTenantName(strSwiftTenantName)
+
+		strSwiftContainer, ok := os.LookupEnv("OS_CONTAINER")
+		if !ok {
+			panic("ENV OS_CONTAINER is not set")
+		}
+		swiftContainer = common.SwiftContainer(strSwiftContainer)
+	}
+
 	api, err := InjectAPI(&Config{
-		IsProduction:  common.IsProduction(isProduction),
-		SessionKey:    "sessions",
-		SessionSecret: common.SessionSecret(secret),
-		TraQBaseURL:   common.TraQBaseURL(traQBaseURL),
-		OAuthClientID: common.ClientID(clientID),
-		/* SwiftAuthURL:    swiftAuthURL,
+		IsProduction:    common.IsProduction(isProduction),
+		SessionKey:      "sessions",
+		SessionSecret:   common.SessionSecret(secret),
+		TraQBaseURL:     common.TraQBaseURL(traQBaseURL),
+		OAuthClientID:   common.ClientID(clientID),
+		SwiftAuthURL:    swiftAuthURL,
 		SwiftUserName:   swiftUserName,
 		SwiftPassword:   swiftPassword,
 		SwiftTenantID:   swiftTenantID,
 		SwiftTenantName: swiftTenantName,
-		SwiftContainer:  swiftContainer,*/
-		FilePath:   common.FilePath(filePath),
-		HttpClient: http.DefaultClient,
+		SwiftContainer:  swiftContainer,
+		FilePath:        common.FilePath(filePath),
+		HttpClient:      http.DefaultClient,
 	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to inject API: %v", err))

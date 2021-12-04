@@ -87,8 +87,8 @@ func InjectAPI(config *Config) (*v1.API, error) {
 		return nil, err
 	}
 	storageFile := storage.File
-	v1File := v1_2.NewFile(db, file, storageFile)
-	file2 := v1.NewFile(checker, v1File)
+	v1File := v1_2.NewFile(db, file, storageFile, userUtils)
+	file2 := v1.NewFile(session, checker, v1File)
 	api := v1.NewAPI(user2, oAuth2, session, file2)
 	return api, nil
 }

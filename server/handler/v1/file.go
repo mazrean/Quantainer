@@ -13,12 +13,14 @@ import (
 )
 
 type File struct {
+	session     *Session
 	checker     *Checker
 	fileService service.File
 }
 
-func NewFile(checker *Checker, fileService service.File) *File {
+func NewFile(session *Session, checker *Checker, fileService service.File) *File {
 	return &File{
+		session:     session,
 		checker:     checker,
 		fileService: fileService,
 	}
@@ -30,9 +32,21 @@ func (f *File) PostFile(c echo.Context) error {
 		return err
 	}
 
+	session, err := getSession(c)
+	if err != nil {
+		log.Printf("error: failed to get session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	authSession, err := f.session.getAuthSession(session)
+	if err != nil {
+		log.Printf("error: failed to get user: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user")
+	}
+
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, "no file")
 	}
 
 	reqFile, err := fileHeader.Open()
@@ -41,13 +55,13 @@ func (f *File) PostFile(c echo.Context) error {
 	}
 	defer reqFile.Close()
 
-	file, err := f.fileService.Upload(c.Request().Context(), reqFile)
+	fileInfo, err := f.fileService.Upload(c.Request().Context(), authSession, reqFile)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Errorf("failed to upload file:%w", err))
 	}
 
 	var fileType Openapi.FileType
-	switch file.GetType() {
+	switch fileInfo.File.GetType() {
 	case values.FileTypeJpeg:
 		fileType = Openapi.FileTypeJpeg
 	case values.FileTypePng:
@@ -61,13 +75,14 @@ func (f *File) PostFile(c echo.Context) error {
 	case values.FileTypeOther:
 		fileType = Openapi.FileTypeOther
 	default:
-		log.Printf("error: unknown file type: %d", file.GetType())
+		log.Printf("error: unknown file type: %d", fileInfo.File.GetType())
 		return echo.NewHTTPError(http.StatusInternalServerError, "unexpected file type")
 	}
 
 	return c.JSON(http.StatusOK, Openapi.File{
-		Id:        uuid.UUID(file.GetID()).String(),
+		Id:        uuid.UUID(fileInfo.File.GetID()).String(),
 		Type:      fileType,
-		CreatedAt: file.GetCreatedAt(),
+		Creator:   string(fileInfo.Creator.GetName()),
+		CreatedAt: fileInfo.File.GetCreatedAt(),
 	})
 }

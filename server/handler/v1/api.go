@@ -10,17 +10,20 @@ type API struct {
 	*User
 	*OAuth2
 	*Session
+	*File
 }
 
 func NewAPI(
 	user *User,
 	oAuth2 *OAuth2,
 	session *Session,
+	file *File,
 ) *API {
 	return &API{
 		User:    user,
 		OAuth2:  oAuth2,
 		Session: session,
+		File:    file,
 	}
 }
 

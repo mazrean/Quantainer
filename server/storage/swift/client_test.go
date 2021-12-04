@@ -62,8 +62,6 @@ func newTestClient(ctx context.Context, containerName common.SwiftContainer, cac
 }
 
 func TestSaveFile(t *testing.T) {
-	t.Parallel()
-
 	ctx := context.Background()
 
 	client, err := newTestClient(
@@ -212,8 +210,6 @@ func TestSaveFile(t *testing.T) {
 }
 
 func TestLoadFile(t *testing.T) {
-	t.Parallel()
-
 	ctx := context.Background()
 
 	client, err := newTestClient(

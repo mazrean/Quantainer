@@ -85,3 +85,12 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 
 	return resource, nil
 }
+
+func (r *Resource) GetResources(ctx context.Context, params *service.ResourceSearchParams) ([]*domain.Resource, error) {
+	resources, err := r.resourceRepository.GetResources(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	return resources, nil
+}

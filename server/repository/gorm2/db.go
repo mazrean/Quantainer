@@ -123,7 +123,6 @@ func (db *DB) getDB(ctx context.Context) (*gorm.DB, error) {
 	return gormDB.WithContext(ctx), nil
 }
 
-//nolint:unused
 func (db *DB) setLock(gormDB *gorm.DB, lockType repository.LockType) (*gorm.DB, error) {
 	switch lockType {
 	case repository.LockTypeRecord:

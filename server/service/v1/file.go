@@ -12,6 +12,7 @@ import (
 	"github.com/mazrean/Quantainer/domain"
 	"github.com/mazrean/Quantainer/domain/values"
 	"github.com/mazrean/Quantainer/repository"
+	"github.com/mazrean/Quantainer/service"
 	"github.com/mazrean/Quantainer/storage"
 )
 
@@ -19,57 +20,64 @@ type File struct {
 	dbRepository   repository.DB
 	fileRepository repository.File
 	fileStorage    storage.File
+	userUtils      *UserUtils
 }
 
 func NewFile(
 	dbRepository repository.DB,
 	fileRepository repository.File,
 	fileStorage storage.File,
+	userUtils *UserUtils,
 ) *File {
 	return &File{
 		dbRepository:   dbRepository,
 		fileRepository: fileRepository,
 		fileStorage:    fileStorage,
+		userUtils:      userUtils,
 	}
 }
 
-func (f *File) Upload(ctx context.Context, reader io.Reader) (*domain.File, error) {
-	var file *domain.File
-	err := f.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
-		buf := bytes.NewBuffer(nil)
-		tr := io.TeeReader(reader, buf)
+func (f *File) Upload(ctx context.Context, session *domain.OIDCSession, reader io.Reader) (*service.FileInfo, error) {
+	user, err := f.userUtils.getMe(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
 
-		content, err := io.ReadAll(tr)
-		if err != nil {
-			return fmt.Errorf("failed to read file: %w", err)
+	buf := bytes.NewBuffer(nil)
+	tr := io.TeeReader(reader, buf)
+
+	content, err := io.ReadAll(tr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	var fileType values.FileType
+	mime := http.DetectContentType(content)
+	switch mime {
+	case "image/jpeg":
+		fileType = values.FileTypeJpeg
+	case "image/png":
+		fileType = values.FileTypePng
+	case "image/webp":
+		fileType = values.FileTypeWebP
+	case "image/gif":
+		fileType = values.FileTypeGif
+	default:
+		if svg.Is(content) {
+			fileType = values.FileTypeSvg
+		} else {
+			fileType = values.FileTypeOther
 		}
+	}
 
-		var fileType values.FileType
-		mime := http.DetectContentType(content)
-		switch mime {
-		case "image/jpeg":
-			fileType = values.FileTypeJpeg
-		case "image/png":
-			fileType = values.FileTypePng
-		case "image/webp":
-			fileType = values.FileTypeWebP
-		case "image/gif":
-			fileType = values.FileTypeGif
-		default:
-			if svg.Is(content) {
-				fileType = values.FileTypeSvg
-			} else {
-				fileType = values.FileTypeOther
-			}
-		}
+	file := domain.NewFile(
+		values.NewFileID(),
+		fileType,
+		time.Now(),
+	)
 
-		file = domain.NewFile(
-			values.NewFileID(),
-			fileType,
-			time.Now(),
-		)
-
-		err = f.fileRepository.SaveFile(ctx, file)
+	err = f.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
+		err := f.fileRepository.SaveFile(ctx, user, file)
 		if err != nil {
 			return fmt.Errorf("failed to save file: %w", err)
 		}
@@ -85,5 +93,8 @@ func (f *File) Upload(ctx context.Context, reader io.Reader) (*domain.File, erro
 		return nil, fmt.Errorf("failed in transaction: %w", err)
 	}
 
-	return file, nil
+	return &service.FileInfo{
+		File:    file,
+		Creator: user,
+	}, nil
 }

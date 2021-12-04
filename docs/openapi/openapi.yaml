@@ -189,6 +189,10 @@ components:
         type:
           description: ファイルの種類
           $ref: '#/components/schemas/FileType'
+        creator:
+          description: ファイルの作成者
+          type: string
+          example: mazrean
         createdAt:
           description: ファイル作成時刻
           type: string
@@ -197,4 +201,5 @@ components:
       required:
         - id
         - type
+        - creator
         - createdAt

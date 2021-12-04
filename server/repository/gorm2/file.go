@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	fileTypeJpeg = "jpeg"
-	fileTypePng  = "png"
-	fileTypeWebP = "webp"
-	fileTypeSvg = "svg"
-	fileTypeGif  = "gif"
+	fileTypeJpeg  = "jpeg"
+	fileTypePng   = "png"
+	fileTypeWebP  = "webp"
+	fileTypeSvg   = "svg"
+	fileTypeGif   = "gif"
 	fileTypeOther = "other"
 )
 
@@ -119,9 +119,9 @@ func (f *File) SaveFile(ctx context.Context, file *domain.File) error {
 	fileTypeID := fileType.ID
 
 	fileTable := FileTable{
-		ID: uuid.UUID(file.GetID()),
+		ID:         uuid.UUID(file.GetID()),
 		FileTypeID: fileTypeID,
-		CreatedAt: file.GetCreatedAt(),
+		CreatedAt:  file.GetCreatedAt(),
 	}
 
 	err = db.Create(&fileTable).Error

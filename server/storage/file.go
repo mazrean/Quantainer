@@ -9,5 +9,5 @@ import (
 
 type File interface {
 	SaveFile(ctx context.Context, file *domain.File, reader io.Reader) error
-	GetFile(ctx context.Context, fileID string, writer io.Writer) error
+	GetFile(ctx context.Context, file *domain.File, writer io.Writer) error
 }

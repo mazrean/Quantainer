@@ -19,6 +19,7 @@ type Resource struct {
 	fileRepository     repository.File
 	resourceRepository repository.Resource
 	fileStorage        storage.File
+	userUtils          *UserUtils
 }
 
 func NewResource(
@@ -26,31 +27,42 @@ func NewResource(
 	fileRepository repository.File,
 	resourceRepository repository.Resource,
 	fileStorage storage.File,
+	userUtils *UserUtils,
 ) *Resource {
 	return &Resource{
 		dbRepository:       dbRepository,
 		fileRepository:     fileRepository,
 		resourceRepository: resourceRepository,
 		fileStorage:        fileStorage,
+		userUtils:          userUtils,
 	}
 }
 
 func (r *Resource) CreateResource(
 	ctx context.Context,
-	user *domain.TraPMember,
+	session *domain.OIDCSession,
 	fileID values.FileID,
 	name values.ResourceName,
 	resourceType values.ResourceType,
 	comment values.ResourceComment,
-) (*domain.Resource, error) {
+) (*service.ResourceInfo, error) {
+	user, err := r.userUtils.getMe(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
 	var resource *domain.Resource
-	err := r.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
-		_, err := r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
+	err = r.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
+		fileInfo, err := r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
 		if errors.Is(err, repository.ErrRecordNotFound) {
 			return service.ErrNoFile
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get file: %w", err)
+		}
+
+		if fileInfo.Creator != user.GetID() {
+			return service.ErrForbidden
 		}
 
 		resource = domain.NewResource(
@@ -72,11 +84,14 @@ func (r *Resource) CreateResource(
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	return resource, nil
+	return &service.ResourceInfo{
+		Resource: resource,
+		Creator:  user,
+	}, nil
 }
 
-func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID) (*domain.Resource, error) {
-	resource, err := r.resourceRepository.GetResource(ctx, resourceID)
+func (r *Resource) GetResource(ctx context.Context, session *domain.OIDCSession, resourceID values.ResourceID) (*service.ResourceInfo, error) {
+	resourceInfo, err := r.resourceRepository.GetResource(ctx, resourceID)
 	if errors.Is(err, repository.ErrRecordNotFound) {
 		return nil, service.ErrNoResource
 	}
@@ -84,13 +99,56 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 		return nil, fmt.Errorf("failed to get resource: %w", err)
 	}
 
-	return resource, nil
+	users, err := r.userUtils.getAllActiveUser(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+
+	var creator *service.UserInfo
+	for i, user := range users {
+		if user.GetID() == resourceInfo.Creator {
+			creator = user
+			break
+		}
+
+		if i == len(users)-1 {
+			return nil, service.ErrNoUser
+		}
+	}
+
+	return &service.ResourceInfo{
+		Resource: resourceInfo.Resource,
+		Creator:  creator,
+	}, nil
 }
 
-func (r *Resource) GetResources(ctx context.Context, params *service.ResourceSearchParams) ([]*domain.Resource, error) {
-	resources, err := r.resourceRepository.GetResources(ctx, params)
+func (r *Resource) GetResources(ctx context.Context, session *domain.OIDCSession, params *service.ResourceSearchParams) ([]*service.ResourceInfo, error) {
+	resourceInfos, err := r.resourceRepository.GetResources(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	users, err := r.userUtils.getAllActiveUser(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+
+	userMap := make(map[values.TraPMemberID]*service.UserInfo)
+	for _, user := range users {
+		userMap[user.GetID()] = user
+	}
+
+	resources := make([]*service.ResourceInfo, 0, len(resourceInfos))
+	for _, resourceInfo := range resourceInfos {
+		user, ok := userMap[resourceInfo.Creator]
+		if !ok {
+			return nil, service.ErrNoUser
+		}
+
+		resources = append(resources, &service.ResourceInfo{
+			Resource: resourceInfo.Resource,
+			Creator:  user,
+		})
 	}
 
 	return resources, nil

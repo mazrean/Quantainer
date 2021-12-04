@@ -10,4 +10,5 @@ var (
 	ErrInvalidFormat          = errors.New("invalid format")
 	ErrNoFile                 = errors.New("no file")
 	ErrNoResource             = errors.New("no resource")
+	ErrNoUser                 = errors.New("no user")
 )

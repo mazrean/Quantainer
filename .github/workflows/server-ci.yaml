@@ -69,7 +69,6 @@ jobs:
             ${{ runner.os }}-go-build-${{ github.ref }}-
             ${{ runner.os }}-go-build-
       - run: go build -o collection
-        working-directory: ./mockGenerated
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -103,7 +102,6 @@ jobs:
           DB_HOSTNAME: 127.0.0.1
           DB_PORT: 3306
           DB_DATABASE: quantainer
-        working-directory: ./mockGenerated
       - name: Upload coverage data
         uses: codecov/codecov-action@v2.1.0
         with:
@@ -135,5 +133,4 @@ jobs:
         with:
           reporter: github-pr-check
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          workdir: mockGenerated
           fail_on_error: true

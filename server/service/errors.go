@@ -9,4 +9,5 @@ var (
 	ErrForbidden              = errors.New("forbidden")
 	ErrInvalidFormat          = errors.New("invalid format")
 	ErrNoFile                 = errors.New("no file")
+	ErrNoResource             = errors.New("no resource")
 )

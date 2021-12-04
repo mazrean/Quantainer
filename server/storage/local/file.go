@@ -55,3 +55,23 @@ func (f *File) SaveFile(ctx context.Context, file *domain.File, reader io.Reader
 
 	return nil
 }
+
+func (f *File) GetFile(ctx context.Context, file *domain.File, writer io.Writer) error {
+	filePath := path.Join(f.fileRootPath, uuid.UUID(file.GetID()).String())
+
+	fl, err := os.Open(filePath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return storage.ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer fl.Close()
+
+	_, err = io.Copy(writer, fl)
+	if err != nil {
+		return fmt.Errorf("failed to copy: %w", err)
+	}
+
+	return nil
+}

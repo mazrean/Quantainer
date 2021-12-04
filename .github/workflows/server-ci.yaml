@@ -37,6 +37,7 @@ jobs:
       - run: go install github.com/golang/mock/mockgen
         working-directory: ./server
       - run: go generate ./...
+        working-directory: ./server
       - uses: actions/upload-artifact@v1
         with:
           name: mockGenerated
@@ -94,7 +95,7 @@ jobs:
           key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-gomod-
-      - run: go test ./src/... -v -coverprofile=../coverage.txt -race -vet=off
+      - run: go test ./... -v -coverprofile=../coverage.txt -race -vet=off
         env:
           COLLECTION_ENV: production
           DB_USERNAME: root

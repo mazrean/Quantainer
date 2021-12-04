@@ -3,6 +3,7 @@ module github.com/mazrean/Quantainer
 go 1.17
 
 require (
+	github.com/comail/colog v0.0.0-20160416085026-fba8e7b1f46c
 	github.com/deepmap/oapi-codegen v1.9.0
 	github.com/getkin/kin-openapi v0.80.0
 	github.com/golang/mock v1.4.4

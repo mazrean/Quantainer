@@ -54,6 +54,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/sessions v1.2.1
+	github.com/h2non/go-is-svg v0.0.0-20160927212452-35e8c4b0612c
 	github.com/labstack/echo-contrib v0.11.0
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/pmezard/go-difflib v1.0.0 // indirect

@@ -51,8 +51,13 @@ func main() {
 		panic(fmt.Sprintf("failed to parse traQBaseURL: %v", err))
 	}
 
+	filePath, ok := os.LookupEnv("FILE_PATH")
+	if !ok {
+		panic("ENV FILE_PATH is not set")
+	}
+
 	api, err := InjectAPI(&Config{
-		// IsProduction:    common.IsProduction(isProduction),
+		IsProduction:  common.IsProduction(isProduction),
 		SessionKey:    "sessions",
 		SessionSecret: common.SessionSecret(secret),
 		TraQBaseURL:   common.TraQBaseURL(traQBaseURL),
@@ -62,8 +67,8 @@ func main() {
 		SwiftPassword:   swiftPassword,
 		SwiftTenantID:   swiftTenantID,
 		SwiftTenantName: swiftTenantName,
-		SwiftContainer:  swiftContainer,
-		FilePath:        common.FilePath(filePath),*/
+		SwiftContainer:  swiftContainer,*/
+		FilePath:   common.FilePath(filePath),
 		HttpClient: http.DefaultClient,
 	})
 	if err != nil {

@@ -136,7 +136,7 @@ func (f *File) SaveFile(ctx context.Context, user *service.UserInfo, file *domai
 	return nil
 }
 
-func (f *File) GetFile(ctx context.Context, fileID values.FileID, lockType repository.LockType) (*domain.File, error) {
+func (f *File) GetFile(ctx context.Context, fileID values.FileID, lockType repository.LockType) (*repository.FileWithCreator, error) {
 	db, err := f.db.getDB(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get db: %w", err)
@@ -179,11 +179,14 @@ func (f *File) GetFile(ctx context.Context, fileID values.FileID, lockType repos
 		return nil, fmt.Errorf("invalid file type: %s", fileTable.FileType.Name)
 	}
 
-	return domain.NewFile(
-		fileID,
-		fileType,
-		fileTable.CreatedAt,
-	), nil
+	return &repository.FileWithCreator{
+		File: domain.NewFile(
+			fileID,
+			fileType,
+			fileTable.CreatedAt,
+		),
+		Creator: values.NewTrapMemberID(fileTable.CreatorID),
+	}, nil
 }
 
 func (f *File) GetFileByResourceID(ctx context.Context, resourceID values.ResourceID) (*domain.File, error) {

@@ -129,5 +129,5 @@ components:
           type: string
           example: eb4a287d-15d9-4f12-8fff-bd088b12ba80
       required:
-        - userId
+        - id
         - name

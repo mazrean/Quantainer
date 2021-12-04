@@ -116,19 +116,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [mockgen]
     steps:
-      - uses: actions/setup-go@v2.1.4
-        with:
-          go-version: 1.17
       - uses: actions/download-artifact@v2.0.10
         with:
           name: mockGenerated
           path: ./server
-      - uses: actions/cache@v2.1.7
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod-
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2.0.3
         with:

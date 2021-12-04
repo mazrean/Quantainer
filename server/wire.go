@@ -17,6 +17,9 @@ import (
 	"github.com/mazrean/Quantainer/repository/gorm2"
 	"github.com/mazrean/Quantainer/service"
 	v1Service "github.com/mazrean/Quantainer/service/v1"
+	"github.com/mazrean/Quantainer/storage"
+	"github.com/mazrean/Quantainer/storage/local"
+	"github.com/mazrean/Quantainer/storage/swift"
 )
 
 type Config struct {
@@ -36,10 +39,13 @@ type Config struct {
 }
 
 type Storage struct {
+	File storage.File
 }
 
-func newStorage() *Storage {
-	return &Storage{}
+func newStorage(file storage.File) *Storage {
+	return &Storage{
+		File: file,
+	}
 }
 
 var (
@@ -58,7 +64,7 @@ var (
 	httpClientField      = wire.FieldsOf(new(*Config), "HttpClient")
 )
 
-/*func injectedStorage(config *Config) (*Storage, error) {
+func injectedStorage(config *Config) (*Storage, error) {
 	if config.IsProduction {
 		return injectSwiftStorage(config)
 	}
@@ -75,7 +81,9 @@ func injectSwiftStorage(config *Config) (*Storage, error) {
 		swiftTenantNameField,
 		swiftContainerField,
 		filePathField,
+		wire.Bind(new(storage.File), new(*swift.File)),
 		swift.NewClient,
+		swift.NewFile,
 		newStorage,
 	)
 
@@ -85,15 +93,18 @@ func injectSwiftStorage(config *Config) (*Storage, error) {
 func injectLocalStorage(config *Config) (*Storage, error) {
 	wire.Build(
 		filePathField,
+		wire.Bind(new(storage.File), new(*local.File)),
 		local.NewDirectoryManager,
+		local.NewFile,
 		newStorage,
 	)
 
 	return nil, nil
-}*/
+}
 
 var (
-	dbBind = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	dbBind             = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	fileRepositoryBind = wire.Bind(new(repository.File), new(*gorm2.File))
 
 	oidcAuthBind = wire.Bind(new(auth.OIDC), new(*traq.OIDC))
 	userAuthBind = wire.Bind(new(auth.User), new(*traq.User))
@@ -102,35 +113,44 @@ var (
 
 	oidcServiceBind = wire.Bind(new(service.OIDC), new(*v1Service.OIDC))
 	userServiceBind = wire.Bind(new(service.User), new(*v1Service.User))
+	fileServiceBind = wire.Bind(new(service.File), new(*v1Service.File))
+
+	fileField = wire.FieldsOf(new(*Storage), "File")
 )
 
 func InjectAPI(config *Config) (*v1Handler.API, error) {
 	wire.Build(
-		//isProductionField,
+		isProductionField,
 		sessionKeyField,
 		sessionSecretField,
 		traQBaseURLField,
 		oAuthClientIDField,
 		httpClientField,
-		// dbBind,
+		fileField,
+		dbBind,
+		fileRepositoryBind,
 		oidcAuthBind,
 		userAuthBind,
 		userCacheBind,
 		oidcServiceBind,
 		userServiceBind,
-		//gorm2.NewDB,
+		fileServiceBind,
+		gorm2.NewDB,
+		gorm2.NewFile,
 		traq.NewOIDC,
 		traq.NewUser,
 		ristretto.NewUser,
 		v1Service.NewOIDC,
 		v1Service.NewUser,
 		v1Service.NewUserUtils,
+		v1Service.NewFile,
 		v1Handler.NewAPI,
 		v1Handler.NewSession,
 		v1Handler.NewOAuth2,
 		v1Handler.NewUser,
 		v1Handler.NewChecker,
-		// injectedStorage,
+		v1Handler.NewFile,
+		injectedStorage,
 	)
 	return nil, nil
 }

@@ -18,10 +18,41 @@ import (
 	"github.com/mazrean/Quantainer/repository/gorm2"
 	"github.com/mazrean/Quantainer/service"
 	v1_2 "github.com/mazrean/Quantainer/service/v1"
+	"github.com/mazrean/Quantainer/storage"
+	"github.com/mazrean/Quantainer/storage/local"
+	"github.com/mazrean/Quantainer/storage/swift"
 	"net/http"
 )
 
 // Injectors from wire.go:
+
+func injectSwiftStorage(config *Config) (*Storage, error) {
+	swiftAuthURL := config.SwiftAuthURL
+	swiftUserName := config.SwiftUserName
+	swiftPassword := config.SwiftPassword
+	swiftTenantName := config.SwiftTenantName
+	swiftTenantID := config.SwiftTenantID
+	swiftContainer := config.SwiftContainer
+	filePath := config.FilePath
+	client, err := swift.NewClient(swiftAuthURL, swiftUserName, swiftPassword, swiftTenantName, swiftTenantID, swiftContainer, filePath)
+	if err != nil {
+		return nil, err
+	}
+	file := swift.NewFile(client)
+	storage := newStorage(file)
+	return storage, nil
+}
+
+func injectLocalStorage(config *Config) (*Storage, error) {
+	filePath := config.FilePath
+	directoryManager := local.NewDirectoryManager(filePath)
+	file, err := local.NewFile(directoryManager)
+	if err != nil {
+		return nil, err
+	}
+	storage := newStorage(file)
+	return storage, nil
+}
 
 func InjectAPI(config *Config) (*v1.API, error) {
 	sessionKey := config.SessionKey
@@ -42,7 +73,23 @@ func InjectAPI(config *Config) (*v1.API, error) {
 	v1User := v1_2.NewUser(userUtils)
 	user2 := v1.NewUser(session, checker, v1User)
 	oAuth2 := v1.NewOAuth2(traQBaseURL, session, checker, v1OIDC)
-	api := v1.NewAPI(user2, oAuth2, session)
+	isProduction := config.IsProduction
+	db, err := gorm2.NewDB(isProduction)
+	if err != nil {
+		return nil, err
+	}
+	file, err := gorm2.NewFile(db)
+	if err != nil {
+		return nil, err
+	}
+	storage, err := injectedStorage(config)
+	if err != nil {
+		return nil, err
+	}
+	storageFile := storage.File
+	v1File := v1_2.NewFile(db, file, storageFile)
+	file2 := v1.NewFile(checker, v1File)
+	api := v1.NewAPI(user2, oAuth2, session, file2)
 	return api, nil
 }
 
@@ -65,10 +112,13 @@ type Config struct {
 }
 
 type Storage struct {
+	File storage.File
 }
 
-func newStorage() *Storage {
-	return &Storage{}
+func newStorage(file storage.File) *Storage {
+	return &Storage{
+		File: file,
+	}
 }
 
 var (
@@ -87,8 +137,17 @@ var (
 	httpClientField      = wire.FieldsOf(new(*Config), "HttpClient")
 )
 
+func injectedStorage(config *Config) (*Storage, error) {
+	if config.IsProduction {
+		return injectSwiftStorage(config)
+	}
+
+	return injectLocalStorage(config)
+}
+
 var (
-	dbBind = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	dbBind             = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	fileRepositoryBind = wire.Bind(new(repository.File), new(*gorm2.File))
 
 	oidcAuthBind = wire.Bind(new(auth.OIDC), new(*traq.OIDC))
 	userAuthBind = wire.Bind(new(auth.User), new(*traq.User))
@@ -97,4 +156,7 @@ var (
 
 	oidcServiceBind = wire.Bind(new(service.OIDC), new(*v1_2.OIDC))
 	userServiceBind = wire.Bind(new(service.User), new(*v1_2.User))
+	fileServiceBind = wire.Bind(new(service.File), new(*v1_2.File))
+
+	fileField = wire.FieldsOf(new(*Storage), "File")
 )

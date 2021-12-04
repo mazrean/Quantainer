@@ -8,8 +8,8 @@ services:
     volumes:
       - ../server:/go/src/github.com/mazrean/quauntainer
     environment:
-      COLLECTION_ENV: development
-      FILE_PATH: ./cache
+      QUANTAINER_ENV: development
+      FILE_PATH: ./uploads
       CLIENT_ID:
       CLIENT_SECRET:
       DB_USERNAME: root

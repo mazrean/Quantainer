@@ -7,7 +7,10 @@ import (
 )
 
 var (
-	tables = []interface{}{}
+	tables = []interface{}{
+		&FileTable{},
+		&FileTypeTable{},
+	}
 )
 
 type FileTable struct {

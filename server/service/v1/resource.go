@@ -1,7 +1,15 @@
 package v1
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/mazrean/Quantainer/domain"
+	"github.com/mazrean/Quantainer/domain/values"
 	"github.com/mazrean/Quantainer/repository"
+	"github.com/mazrean/Quantainer/service"
 	"github.com/mazrean/Quantainer/storage"
 )
 
@@ -24,4 +32,44 @@ func NewResource(
 		resourceRepository: resourceRepository,
 		fileStorage:        fileStorage,
 	}
+}
+
+func (r *Resource) CreateResource(
+	ctx context.Context,
+	user *domain.TraPMember,
+	fileID values.FileID,
+	name values.ResourceName,
+	resourceType values.ResourceType,
+	comment values.ResourceComment,
+) (*domain.Resource, error) {
+	var resource *domain.Resource
+	err := r.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
+		_, err := r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			return service.ErrNoFile
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get file: %w", err)
+		}
+
+		resource = domain.NewResource(
+			values.NewResourceID(),
+			name,
+			resourceType,
+			comment,
+			time.Now(),
+		)
+
+		err = r.resourceRepository.SaveResource(ctx, fileID, resource)
+		if err != nil {
+			return fmt.Errorf("failed to save resource: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	return resource, nil
 }

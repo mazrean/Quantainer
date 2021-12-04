@@ -8,4 +8,5 @@ var (
 	ErrOIDCSessionExpired     = errors.New("session access token expired")
 	ErrForbidden              = errors.New("forbidden")
 	ErrInvalidFormat          = errors.New("invalid format")
+	ErrNoFile                 = errors.New("no file")
 )

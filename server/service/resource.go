@@ -11,14 +11,14 @@ import (
 type Resource interface {
 	CreateResource(
 		ctx context.Context,
-		user *domain.TraPMember,
+		session *domain.OIDCSession,
 		fileID values.FileID,
 		name values.ResourceName,
 		resourceType values.ResourceType,
 		comment values.ResourceComment,
-	) (*domain.Resource, error)
-	GetResource(ctx context.Context, resourceID values.ResourceID) (*domain.Resource, error)
-	GetResources(ctx context.Context, params *ResourceSearchParams) ([]*domain.Resource, error)
+	) (*ResourceInfo, error)
+	GetResource(ctx context.Context, session *domain.OIDCSession, resourceID values.ResourceID) (*ResourceInfo, error)
+	GetResources(ctx context.Context, session *domain.OIDCSession, params *ResourceSearchParams) ([]*ResourceInfo, error)
 	DownloadResourceFile(ctx context.Context, resourceID values.ResourceID, writer io.Writer) (*domain.File, error)
 }
 
@@ -27,4 +27,9 @@ type ResourceSearchParams struct {
 	Users         []values.TraPMemberName
 	Limit         int
 	Offset        int
+}
+
+type ResourceInfo struct {
+	*domain.Resource
+	Creator *UserInfo
 }

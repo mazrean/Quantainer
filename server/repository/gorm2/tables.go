@@ -17,6 +17,7 @@ var (
 type FileTable struct {
 	ID         uuid.UUID     `gorm:"type:varchar(36);not null;primaryKey"`
 	FileTypeID int           `gorm:"type:tinyint;not null"`
+	CreatorID  uuid.UUID     `gorm:"type:varchar(36);not null"`
 	CreatedAt  time.Time     `gorm:"type:datetime;not null"`
 	FileType   FileTypeTable `gorm:"foreignKey:FileTypeID"`
 }

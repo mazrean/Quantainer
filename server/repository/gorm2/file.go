@@ -9,6 +9,7 @@ import (
 	"github.com/mazrean/Quantainer/domain"
 	"github.com/mazrean/Quantainer/domain/values"
 	"github.com/mazrean/Quantainer/repository"
+	"github.com/mazrean/Quantainer/service"
 	"gorm.io/gorm"
 )
 
@@ -84,7 +85,7 @@ func setupFileTypeTable(db *gorm.DB) error {
 	return nil
 }
 
-func (f *File) SaveFile(ctx context.Context, file *domain.File) error {
+func (f *File) SaveFile(ctx context.Context, user *service.UserInfo, file *domain.File) error {
 	db, err := f.db.getDB(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get db: %w", err)
@@ -123,6 +124,7 @@ func (f *File) SaveFile(ctx context.Context, file *domain.File) error {
 	fileTable := FileTable{
 		ID:         uuid.UUID(file.GetID()),
 		FileTypeID: fileTypeID,
+		CreatorID:  uuid.UUID(user.GetID()),
 		CreatedAt:  file.GetCreatedAt(),
 	}
 

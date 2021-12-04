@@ -73,3 +73,15 @@ func (r *Resource) CreateResource(
 
 	return resource, nil
 }
+
+func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID) (*domain.Resource, error) {
+	resource, err := r.resourceRepository.GetResource(ctx, resourceID)
+	if errors.Is(err, repository.ErrRecordNotFound) {
+		return nil, service.ErrNoResource
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resource: %w", err)
+	}
+
+	return resource, nil
+}

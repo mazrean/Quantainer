@@ -133,6 +133,17 @@ func (r *Resource) GetResource(c echo.Context, resourceID Openapi.ResourceIDInPa
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get resource")
 	}
 
+	var resourceType Openapi.ResourceType
+	switch resource.Resource.GetType() {
+	case values.ResourceTypeImage:
+		resourceType = Openapi.ResourceTypeImage
+	case values.ResourceTypeOther:
+		resourceType = Openapi.ResourceTypeOther
+	default:
+		log.Printf("error: unknown resource type: %v\n", resource.Resource.GetType())
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid resource type")
+	}
+
 	return c.JSON(http.StatusOK, &Openapi.Resource{
 		Id:        uuid.UUID(resource.Resource.GetID()).String(),
 		Creator:   string(resource.Creator.GetName()),
@@ -141,7 +152,7 @@ func (r *Resource) GetResource(c echo.Context, resourceID Openapi.ResourceIDInPa
 		NewResource: Openapi.NewResource{
 			Name:         string(resource.Resource.GetName()),
 			Comment:      string(resource.Resource.GetComment()),
-			ResourceType: Openapi.ResourceType(resource.Resource.GetType()),
+			ResourceType: resourceType,
 		},
 	})
 }
@@ -197,7 +208,7 @@ func (r *Resource) GetResources(c echo.Context, params Openapi.GetResourcesParam
 
 	var users []values.TraPMemberName
 	if params.User != nil {
-		users = make([]values.TraPMemberName, len(*params.User))
+		users = make([]values.TraPMemberName, 0, len(*params.User))
 		for _, user := range *params.User {
 			users = append(users, values.NewTrapMemberName(user))
 		}
@@ -218,9 +229,24 @@ func (r *Resource) GetResources(c echo.Context, params Openapi.GetResourcesParam
 	if errors.Is(err, service.ErrNoUser) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid user")
 	}
+	if err != nil {
+		log.Printf("error: failed to get resources: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get resources")
+	}
 
 	resources := make([]Openapi.Resource, 0, len(resourceInfos))
 	for _, resourceInfo := range resourceInfos {
+		var resourceType Openapi.ResourceType
+		switch resourceInfo.Resource.GetType() {
+		case values.ResourceTypeImage:
+			resourceType = Openapi.ResourceTypeImage
+		case values.ResourceTypeOther:
+			resourceType = Openapi.ResourceTypeOther
+		default:
+			log.Printf("error: unknown resource type: %v\n", resourceInfo.Resource.GetType())
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid resource type")
+		}
+
 		resources = append(resources, Openapi.Resource{
 			Id:        uuid.UUID(resourceInfo.Resource.GetID()).String(),
 			Creator:   string(resourceInfo.Creator.GetName()),
@@ -229,7 +255,7 @@ func (r *Resource) GetResources(c echo.Context, params Openapi.GetResourcesParam
 			NewResource: Openapi.NewResource{
 				Name:         string(resourceInfo.Resource.GetName()),
 				Comment:      string(resourceInfo.Resource.GetComment()),
-				ResourceType: Openapi.ResourceType(resourceInfo.Resource.GetType()),
+				ResourceType: resourceType,
 			},
 		})
 	}

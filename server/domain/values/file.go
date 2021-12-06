@@ -25,3 +25,12 @@ const (
 	FileTypeGif
 	FileTypeOther
 )
+
+func (ft FileType) IsValidResourceType(resourceType ResourceType) bool {
+	switch ft {
+	case FileTypeJpeg, FileTypePng, FileTypeWebP, FileTypeSvg, FileTypeGif:
+		return resourceType == ResourceTypeImage || resourceType == ResourceTypeOther
+	default:
+		return resourceType == ResourceTypeOther
+	}
+}

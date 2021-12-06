@@ -83,6 +83,9 @@ func (r *Resource) PostResource(c echo.Context, strFileID Openapi.FileIDInPath) 
 	if errors.Is(err, service.ErrForbidden) {
 		return echo.NewHTTPError(http.StatusForbidden, "you are not the file owner")
 	}
+	if errors.Is(err, service.ErrInvalidResourceType) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid resource type")
+	}
 	if err != nil {
 		log.Printf("error: failed to create resource: %v\n", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create resource")

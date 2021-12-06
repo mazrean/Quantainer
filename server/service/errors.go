@@ -11,4 +11,5 @@ var (
 	ErrNoFile                 = errors.New("no file")
 	ErrNoResource             = errors.New("no resource")
 	ErrNoUser                 = errors.New("no user")
+	ErrInvalidResourceType    = errors.New("invalid resource type")
 )

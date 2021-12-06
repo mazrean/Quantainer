@@ -81,7 +81,7 @@ func (f *File) PostFile(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "unexpected file type")
 	}
 
-	return c.JSON(http.StatusOK, Openapi.File{
+	return c.JSON(http.StatusCreated, Openapi.File{
 		Id:        uuid.UUID(fileInfo.File.GetID()).String(),
 		Type:      fileType,
 		Creator:   string(fileInfo.Creator.GetName()),

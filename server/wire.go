@@ -103,17 +103,19 @@ func injectLocalStorage(config *Config) (*Storage, error) {
 }
 
 var (
-	dbBind             = wire.Bind(new(repository.DB), new(*gorm2.DB))
-	fileRepositoryBind = wire.Bind(new(repository.File), new(*gorm2.File))
+	dbBind                 = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	fileRepositoryBind     = wire.Bind(new(repository.File), new(*gorm2.File))
+	resourceRepositoryBind = wire.Bind(new(repository.Resource), new(*gorm2.Resource))
 
 	oidcAuthBind = wire.Bind(new(auth.OIDC), new(*traq.OIDC))
 	userAuthBind = wire.Bind(new(auth.User), new(*traq.User))
 
 	userCacheBind = wire.Bind(new(cache.User), new(*ristretto.User))
 
-	oidcServiceBind = wire.Bind(new(service.OIDC), new(*v1Service.OIDC))
-	userServiceBind = wire.Bind(new(service.User), new(*v1Service.User))
-	fileServiceBind = wire.Bind(new(service.File), new(*v1Service.File))
+	oidcServiceBind     = wire.Bind(new(service.OIDC), new(*v1Service.OIDC))
+	userServiceBind     = wire.Bind(new(service.User), new(*v1Service.User))
+	fileServiceBind     = wire.Bind(new(service.File), new(*v1Service.File))
+	resourceServiceBind = wire.Bind(new(service.Resource), new(*v1Service.Resource))
 
 	fileField = wire.FieldsOf(new(*Storage), "File")
 )
@@ -129,14 +131,17 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		fileField,
 		dbBind,
 		fileRepositoryBind,
+		resourceRepositoryBind,
 		oidcAuthBind,
 		userAuthBind,
 		userCacheBind,
 		oidcServiceBind,
 		userServiceBind,
 		fileServiceBind,
+		resourceServiceBind,
 		gorm2.NewDB,
 		gorm2.NewFile,
+		gorm2.NewResource,
 		traq.NewOIDC,
 		traq.NewUser,
 		ristretto.NewUser,
@@ -144,12 +149,14 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		v1Service.NewUser,
 		v1Service.NewUserUtils,
 		v1Service.NewFile,
+		v1Service.NewResource,
 		v1Handler.NewAPI,
 		v1Handler.NewSession,
 		v1Handler.NewOAuth2,
 		v1Handler.NewUser,
 		v1Handler.NewChecker,
 		v1Handler.NewFile,
+		v1Handler.NewResource,
 		injectedStorage,
 	)
 	return nil, nil

@@ -12,15 +12,11 @@ tags:
   - name: oauth2
   - name: user
   - name: file
+  - name: resource
 paths:
   /oauth2/callback:
     parameters:
-      - name: code
-        in: query
-        required: true
-        description: OAuth2.0のcode
-        schema:
-          type: string
+      - $ref: '#/components/parameters/codeInQuery'
     get:
       tags:
         - oauth2
@@ -124,12 +120,44 @@ paths:
             schema:
               $ref: '#/components/schemas/NewFile'
       responses:
-        "200":
+        "201":
           description: 成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/File'
+        "400":
+          description: リクエストの形式が誤っている
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /files/{fileID}/resources:
+    parameters:
+      - $ref: '#/components/parameters/fileIDInPath'
+    post:
+      tags:
+        - file
+        - resource
+      summary: リソースの作成
+      description: リソースの作成
+      operationId: postResource
+      security:
+        - traPMemberAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewResource'
+      responses:
+        "201":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        "400":
+          description: リクエストの形式が誤っている
         "401":
           description: ログインしていない
         "500":
@@ -173,6 +201,51 @@ paths:
               schema:
                 type: string
                 format: binary
+  /resources/{resourceID}:
+    parameters:
+      - $ref: '#/components/parameters/resourceIDInPath'
+    get:
+      tags:
+        - resource
+      summary: リソースの情報の取得
+      description: リソースの情報の取得
+      operationId: getResource
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /resources:
+    get:
+      tags:
+        - resource
+      summary: リソースの情報の取得
+      description: リソースの情報の取得
+      operationId: getResources
+      security:
+        - traPMemberAuth: []
+      parameters:
+        - $ref: '#/components/parameters/typeInQuery'
+        - $ref: '#/components/parameters/userInQuery'
+        - $ref: '#/components/parameters/limitInQuery'
+        - $ref: '#/components/parameters/offsetInQuery'
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resource'
         "401":
           description: ログインしていない
         "500":
@@ -185,14 +258,63 @@ components:
       in: cookie
       name: sessions
   parameters:
+    codeInQuery:
+      name: code
+      in: query
+      required: true
+      description: OAuth2.0のcode
+      schema:
+        type: string
     fileIDInPath:
       name: fileID
       in: path
       required: true
-      description: ファイルのID
+      description: ファイルのid
       schema:
         type: string
         format: uuid
+    resourceIDInPath:
+      name: resourceID
+      in: path
+      required: true
+      description: リソースid
+      schema:
+        type: string
+        format: uuid
+    typeInQuery:
+      name: type
+      in: query
+      required: false
+      description: リソースの種類
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/ResourceType'
+    userInQuery:
+      name: user
+      in: query
+      required: false
+      description: ファイル登録者
+      schema:
+        type: array
+        items:
+          description: traQID（UUIDでない方）
+          type: string
+          example: mazrean
+    limitInQuery:
+      name: limit
+      in: query
+      required: false
+      description: 取得するデータの数
+      schema:
+        type: integer
+    offsetInQuery:
+      name: offset
+      in: query
+      required: false
+      description: 取得するデータのoffset
+      schema:
+        type: integer
   schemas:
     User:
       description: ユーザー
@@ -255,3 +377,57 @@ components:
         - type
         - creator
         - createdAt
+    ResourceType:
+      description: リソースの種類
+      type: string
+      enum:
+        - image
+        - other
+    NewResource:
+      description: 新規リソース
+      type: object
+      properties:
+        name:
+          description: リソース名
+          type: string
+          example: ターゲットカーソル1
+        resourceType:
+          description: リソースの種類
+          $ref: '#/components/schemas/ResourceType'
+        comment:
+          description: リソースのコメント
+          type: string
+      required:
+        - name
+        - resourceType
+        - comment
+    Resource:
+      description: リソース
+      allOf:
+      - $ref: '#/components/schemas/NewResource'
+      - type: object
+        properties:
+          id:
+            description: リソースid
+            type: string
+            format: uuid
+            example: eb4a287d-15d9-4f12-8fff-bd088b12ba80
+          creator:
+            description: ファイルの作成者
+            type: string
+            example: mazrean
+          fileID:
+            description: ファイルid
+            type: string
+            format: uuid
+            example: eb4a287d-15d9-4f12-8fff-bd088b12ba80
+          createdAt:
+            description: リソース作成時刻
+            type: string
+            format: date-time
+            example: '2019-09-25T09:51:31Z'
+        required:
+          - id
+          - creator
+          - fileID
+          - createdAt

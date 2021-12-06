@@ -151,8 +151,8 @@ func (f *File) GetFile(ctx context.Context, fileID values.FileID, lockType repos
 	err = db.
 		Session(&gorm.Session{}).
 		Joins("FileType").
-		Where("files.id = ?", fileID).
-		Select("files.creator_id", "files.created_at", "file_types.name").
+		Where("files.id = ?", uuid.UUID(fileID)).
+		Select("files.creator_id", "files.created_at").
 		Take(&fileTable).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, repository.ErrRecordNotFound

@@ -89,7 +89,13 @@ func InjectAPI(config *Config) (*v1.API, error) {
 	storageFile := storage.File
 	v1File := v1_2.NewFile(db, file, storageFile, userUtils)
 	file2 := v1.NewFile(session, checker, v1File)
-	api := v1.NewAPI(user2, oAuth2, session, file2)
+	resource, err := gorm2.NewResource(db)
+	if err != nil {
+		return nil, err
+	}
+	v1Resource := v1_2.NewResource(db, file, resource, userUtils)
+	resource2 := v1.NewResource(session, checker, v1Resource)
+	api := v1.NewAPI(user2, oAuth2, session, file2, resource2)
 	return api, nil
 }
 
@@ -146,17 +152,19 @@ func injectedStorage(config *Config) (*Storage, error) {
 }
 
 var (
-	dbBind             = wire.Bind(new(repository.DB), new(*gorm2.DB))
-	fileRepositoryBind = wire.Bind(new(repository.File), new(*gorm2.File))
+	dbBind                 = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	fileRepositoryBind     = wire.Bind(new(repository.File), new(*gorm2.File))
+	resourceRepositoryBind = wire.Bind(new(repository.Resource), new(*gorm2.Resource))
 
 	oidcAuthBind = wire.Bind(new(auth.OIDC), new(*traq.OIDC))
 	userAuthBind = wire.Bind(new(auth.User), new(*traq.User))
 
 	userCacheBind = wire.Bind(new(cache.User), new(*ristretto.User))
 
-	oidcServiceBind = wire.Bind(new(service.OIDC), new(*v1_2.OIDC))
-	userServiceBind = wire.Bind(new(service.User), new(*v1_2.User))
-	fileServiceBind = wire.Bind(new(service.File), new(*v1_2.File))
+	oidcServiceBind     = wire.Bind(new(service.OIDC), new(*v1_2.OIDC))
+	userServiceBind     = wire.Bind(new(service.User), new(*v1_2.User))
+	fileServiceBind     = wire.Bind(new(service.File), new(*v1_2.File))
+	resourceServiceBind = wire.Bind(new(service.Resource), new(*v1_2.Resource))
 
 	fileField = wire.FieldsOf(new(*Storage), "File")
 )

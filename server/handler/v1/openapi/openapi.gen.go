@@ -38,6 +38,13 @@ const (
 	FileTypeWebp FileType = "webp"
 )
 
+// Defines values for ResourceType.
+const (
+	ResourceTypeImage ResourceType = "image"
+
+	ResourceTypeOther ResourceType = "other"
+)
+
 // ファイル
 type File struct {
 	// ファイル作成時刻
@@ -61,6 +68,39 @@ type NewFile struct {
 	File string `json:"file"`
 }
 
+// 新規リソース
+type NewResource struct {
+	// リソースのコメント
+	Comment string `json:"comment"`
+
+	// リソース名
+	Name string `json:"name"`
+
+	// リソースの種類
+	ResourceType ResourceType `json:"resourceType"`
+}
+
+// Resource defines model for Resource.
+type Resource struct {
+	// Embedded struct due to allOf(#/components/schemas/NewResource)
+	NewResource `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+	// リソース作成時刻
+	CreatedAt time.Time `json:"createdAt"`
+
+	// ファイルの作成者
+	Creator string `json:"creator"`
+
+	// ファイルid
+	FileID string `json:"fileID"`
+
+	// リソースid
+	Id string `json:"id"`
+}
+
+// リソースの種類
+type ResourceType string
+
 // ユーザー
 type User struct {
 	// traQのID（UUID）
@@ -70,14 +110,53 @@ type User struct {
 	Name string `json:"name"`
 }
 
+// CodeInQuery defines model for codeInQuery.
+type CodeInQuery string
+
 // FileIDInPath defines model for fileIDInPath.
 type FileIDInPath string
+
+// LimitInQuery defines model for limitInQuery.
+type LimitInQuery int
+
+// OffsetInQuery defines model for offsetInQuery.
+type OffsetInQuery int
+
+// ResourceIDInPath defines model for resourceIDInPath.
+type ResourceIDInPath string
+
+// TypeInQuery defines model for typeInQuery.
+type TypeInQuery []ResourceType
+
+// UserInQuery defines model for userInQuery.
+type UserInQuery []string
+
+// PostResourceJSONBody defines parameters for PostResource.
+type PostResourceJSONBody NewResource
 
 // CallbackParams defines parameters for Callback.
 type CallbackParams struct {
 	// OAuth2.0のcode
-	Code string `json:"code"`
+	Code CodeInQuery `json:"code"`
 }
+
+// GetResourcesParams defines parameters for GetResources.
+type GetResourcesParams struct {
+	// リソースの種類
+	Type *TypeInQuery `json:"type,omitempty"`
+
+	// ファイル登録者
+	User *UserInQuery `json:"user,omitempty"`
+
+	// 取得するデータの数
+	Limit *LimitInQuery `json:"limit,omitempty"`
+
+	// 取得するデータのoffset
+	Offset *OffsetInQuery `json:"offset,omitempty"`
+}
+
+// PostResourceJSONRequestBody defines body for PostResource for application/json ContentType.
+type PostResourceJSONRequestBody PostResourceJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -87,6 +166,9 @@ type ServerInterface interface {
 	// ファイルの取得
 	// (GET /files/{fileID})
 	GetFile(ctx echo.Context, fileID FileIDInPath) error
+	// リソースの作成
+	// (POST /files/{fileID}/resources)
+	PostResource(ctx echo.Context, fileID FileIDInPath) error
 	// OAuthのコールバック
 	// (GET /oauth2/callback)
 	Callback(ctx echo.Context, params CallbackParams) error
@@ -96,6 +178,12 @@ type ServerInterface interface {
 	// ログアウト
 	// (POST /oauth2/logout)
 	PostLogout(ctx echo.Context) error
+	// リソースの情報の取得
+	// (GET /resources)
+	GetResources(ctx echo.Context, params GetResourcesParams) error
+	// リソースの情報の取得
+	// (GET /resources/{resourceID})
+	GetResource(ctx echo.Context, resourceID ResourceIDInPath) error
 	// traQの全ユーザー取得
 	// (GET /users)
 	GetUsers(ctx echo.Context) error
@@ -138,6 +226,24 @@ func (w *ServerInterfaceWrapper) GetFile(ctx echo.Context) error {
 	return err
 }
 
+// PostResource converts echo context to params.
+func (w *ServerInterfaceWrapper) PostResource(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "fileID" -------------
+	var fileID FileIDInPath
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "fileID", runtime.ParamLocationPath, ctx.Param("fileID"), &fileID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fileID: %s", err))
+	}
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.PostResource(ctx, fileID)
+	return err
+}
+
 // Callback converts echo context to params.
 func (w *ServerInterfaceWrapper) Callback(ctx echo.Context) error {
 	var err error
@@ -173,6 +279,65 @@ func (w *ServerInterfaceWrapper) PostLogout(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.PostLogout(ctx)
+	return err
+}
+
+// GetResources converts echo context to params.
+func (w *ServerInterfaceWrapper) GetResources(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetResourcesParams
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", ctx.QueryParams(), &params.Type)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter type: %s", err))
+	}
+
+	// ------------- Optional query parameter "user" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "user", ctx.QueryParams(), &params.User)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user: %s", err))
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter limit: %s", err))
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", ctx.QueryParams(), &params.Offset)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetResources(ctx, params)
+	return err
+}
+
+// GetResource converts echo context to params.
+func (w *ServerInterfaceWrapper) GetResource(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "resourceID" -------------
+	var resourceID ResourceIDInPath
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "resourceID", runtime.ParamLocationPath, ctx.Param("resourceID"), &resourceID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter resourceID: %s", err))
+	}
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetResource(ctx, resourceID)
 	return err
 }
 
@@ -228,9 +393,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.POST(baseURL+"/files", wrapper.PostFile)
 	router.GET(baseURL+"/files/:fileID", wrapper.GetFile)
+	router.POST(baseURL+"/files/:fileID/resources", wrapper.PostResource)
 	router.GET(baseURL+"/oauth2/callback", wrapper.Callback)
 	router.GET(baseURL+"/oauth2/generate/code", wrapper.GetGeneratedCode)
 	router.POST(baseURL+"/oauth2/logout", wrapper.PostLogout)
+	router.GET(baseURL+"/resources", wrapper.GetResources)
+	router.GET(baseURL+"/resources/:resourceID", wrapper.GetResource)
 	router.GET(baseURL+"/users", wrapper.GetUsers)
 	router.GET(baseURL+"/users/me", wrapper.GetMe)
 
@@ -239,29 +407,37 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

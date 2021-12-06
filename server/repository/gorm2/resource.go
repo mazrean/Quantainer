@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/mazrean/Quantainer/domain"
@@ -84,7 +85,7 @@ func (r *Resource) SaveResource(ctx context.Context, fileID values.FileID, resou
 	err = db.
 		Session(&gorm.Session{}).
 		Where("name = ?", resourceTypeName).
-		First(&resourceType).Error
+		Take(&resourceType).Error
 	if err != nil {
 		return fmt.Errorf("failed to get resource type: %w", err)
 	}
@@ -117,18 +118,11 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 		Session(&gorm.Session{}).
 		Joins("ResourceType").
 		Joins("File").
-		Joins("File.FileType").
-		Where("id = ?", uuid.UUID(resourceID)).
+		Where("resources.id = ?", uuid.UUID(resourceID)).
 		Select(
 			"resources.name",
 			"resources.comment",
 			"resources.created_at",
-			"resource_types.name",
-			"files.id",
-			"file_types.name",
-			"files.creator_id",
-			"files.created_at",
-			"file_types.name",
 		).
 		Take(&resourceTable).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -148,6 +142,14 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 		return nil, fmt.Errorf("invalid resource type: %s", resourceTable.ResourceType.Name)
 	}
 
+	err = db.
+		Session(&gorm.Session{}).
+		Where("id = ?", resourceTable.File.FileTypeID).
+		Take(&resourceTable.File.FileType).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resource type: %w", err)
+	}
+
 	var fileType values.FileType
 	switch resourceTable.File.FileType.Name {
 	case fileTypeJpeg:
@@ -163,6 +165,7 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 	case fileTypeOther:
 		fileType = values.FileTypeOther
 	default:
+		log.Printf("debug: resource: %+v\n", resourceTable)
 		return nil, fmt.Errorf("invalid file type: %s", resourceTable.File.FileType.Name)
 	}
 
@@ -208,31 +211,49 @@ func (r *Resource) GetResources(ctx context.Context, params *repository.Resource
 		creatorIDs = append(creatorIDs, uuid.UUID(creatorInfo.GetID()))
 	}
 
-	var resourceTables []ResourceTable
-	err = db.
+	query := db.
 		Session(&gorm.Session{}).
 		Joins("ResourceType").
-		Joins("File").
-		Joins("File.FileType").
-		Where("resource_types.name IN ?", resourceTypeNames).
-		Where("files.creator_id IN ?", creatorIDs).
-		Limit(params.Limit).
-		Offset(params.Offset).
+		Joins("File")
+
+	if len(resourceTypeNames) != 0 {
+		query = query.Where("ResourceType.name IN ?", resourceTypeNames)
+	}
+	if len(creatorIDs) != 0 {
+		query = query.Where("File.creator_id IN ?", creatorIDs)
+	}
+
+	if params.Limit != -1 {
+		query = query.Limit(params.Limit)
+	}
+	if params.Offset != 0 {
+		query = query.Offset(params.Offset)
+	}
+
+	var resourceTables []ResourceTable
+	err = query.
 		Select(
 			"resources.id",
 			"resources.name",
 			"resources.comment",
 			"resources.created_at",
-			"resource_types.name",
-			"files.id",
-			"file_types.name",
-			"files.creator_id",
-			"files.created_at",
-			"file_types.name",
 		).
 		Find(&resourceTables).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	var fileTypeTables []FileTypeTable
+	err = db.
+		Session(&gorm.Session{}).
+		Find(&fileTypeTables).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resource type: %w", err)
+	}
+
+	fileTypeMap := make(map[int]string, len(fileTypeTables))
+	for _, fileTypeTable := range fileTypeTables {
+		fileTypeMap[fileTypeTable.ID] = fileTypeTable.Name
 	}
 
 	resources := make([]*repository.ResourceInfo, 0, len(resourceTables))
@@ -248,7 +269,7 @@ func (r *Resource) GetResources(ctx context.Context, params *repository.Resource
 		}
 
 		var fileType values.FileType
-		switch resourceTable.File.FileType.Name {
+		switch fileTypeMap[resourceTable.File.FileTypeID] {
 		case fileTypeJpeg:
 			fileType = values.FileTypeJpeg
 		case fileTypePng:

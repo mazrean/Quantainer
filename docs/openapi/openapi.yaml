@@ -257,3 +257,51 @@ components:
         - type
         - creator
         - createdAt
+    ResourceType:
+      description: リソースの種類
+      type: string
+      enum:
+        - image
+        - other
+    NewResource:
+      description: 新規リソース
+      type: object
+      properties:
+        name:
+          description: リソース名
+          type: string
+          example: ターゲットカーソル1
+        resourceType:
+          description: リソースの種類
+          $ref: '#/components/schemas/ResourceType'
+        comment:
+          description: リソースのコメント
+          type: string
+      required:
+        - name
+        - resourceType
+        - comment
+    Resource:
+      description: リソース
+      allOf:
+      - $ref: '#/components/schemas/NewResource'
+      - type: object
+        properties:
+          id:
+            description: リソースid
+            type: string
+            format: uuid
+            example: eb4a287d-15d9-4f12-8fff-bd088b12ba80
+          creator:
+            description: ファイルの作成者
+            type: string
+            example: mazrean
+          createdAt:
+            description: リソース作成時刻
+            type: string
+            format: date-time
+            example: '2019-09-25T09:51:31Z'
+        required:
+          - id
+          - creator
+          - createdAt

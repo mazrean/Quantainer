@@ -145,3 +145,94 @@ func (r *Resource) GetResource(c echo.Context, resourceID Openapi.ResourceIDInPa
 		},
 	})
 }
+
+func (r *Resource) GetResources(c echo.Context, params Openapi.GetResourcesParams) error {
+	err := r.checker.check(c)
+	if err != nil {
+		return err
+	}
+
+	session, err := getSession(c)
+	if err != nil {
+		log.Printf("error: failed to get session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	authSession, err := r.session.getAuthSession(session)
+	if err != nil {
+		log.Printf("error: failed to get auth session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get auth session")
+	}
+
+	var limit int
+	if params.Limit != nil {
+		limit = int(*params.Limit)
+	} else {
+		limit = -1
+	}
+
+	var offset int
+	if params.Offset != nil {
+		offset = int(*params.Offset)
+	} else {
+		offset = 0
+	}
+
+	var resourceTypes []values.ResourceType
+	if params.Type != nil {
+		resourceTypes = make([]values.ResourceType, 0, len(*params.Type))
+		for _, resourceType := range *params.Type {
+			switch resourceType {
+			case Openapi.ResourceTypeImage:
+				resourceTypes = append(resourceTypes, values.ResourceTypeImage)
+			case Openapi.ResourceTypeOther:
+				resourceTypes = append(resourceTypes, values.ResourceTypeOther)
+			default:
+				return echo.NewHTTPError(http.StatusBadRequest, "invalid resource type")
+			}
+		}
+	} else {
+		resourceTypes = nil
+	}
+
+	var users []values.TraPMemberName
+	if params.User != nil {
+		users = make([]values.TraPMemberName, len(*params.User))
+		for _, user := range *params.User {
+			users = append(users, values.NewTrapMemberName(user))
+		}
+	} else {
+		users = nil
+	}
+
+	resourceInfos, err := r.resourceService.GetResources(
+		c.Request().Context(),
+		authSession,
+		&service.ResourceSearchParams{
+			ResourceTypes: resourceTypes,
+			Users:         users,
+			Limit:         limit,
+			Offset:        offset,
+		},
+	)
+	if errors.Is(err, service.ErrNoUser) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid user")
+	}
+
+	resources := make([]Openapi.Resource, 0, len(resourceInfos))
+	for _, resourceInfo := range resourceInfos {
+		resources = append(resources, Openapi.Resource{
+			Id:        uuid.UUID(resourceInfo.Resource.GetID()).String(),
+			Creator:   string(resourceInfo.Creator.GetName()),
+			FileID:    uuid.UUID(resourceInfo.File.GetID()).String(),
+			CreatedAt: resourceInfo.Resource.GetCreatedAt(),
+			NewResource: Openapi.NewResource{
+				Name:         string(resourceInfo.Resource.GetName()),
+				Comment:      string(resourceInfo.Resource.GetComment()),
+				ResourceType: Openapi.ResourceType(resourceInfo.Resource.GetType()),
+			},
+		})
+	}
+
+	return c.JSON(http.StatusOK, resources)
+}

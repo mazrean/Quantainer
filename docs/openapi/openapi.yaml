@@ -201,6 +201,24 @@ paths:
               schema:
                 type: string
                 format: binary
+  /resources/{resourceID}:
+    parameters:
+      - $ref: '#/components/parameters/resourceIDInPath'
+    get:
+      tags:
+        - resource
+      summary: リソースの情報の取得
+      description: リソースの情報の取得
+      operationId: getResource
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
         "401":
           description: ログインしていない
         "500":
@@ -225,6 +243,14 @@ components:
       in: path
       required: true
       description: ファイルのid
+      schema:
+        type: string
+        format: uuid
+    resourceIDInPath:
+      name: resourceID
+      in: path
+      required: true
+      description: リソースid
       schema:
         type: string
         format: uuid

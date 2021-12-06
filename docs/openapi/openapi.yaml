@@ -15,12 +15,7 @@ tags:
 paths:
   /oauth2/callback:
     parameters:
-      - name: code
-        in: query
-        required: true
-        description: OAuth2.0のcode
-        schema:
-          type: string
+      - $ref: '#/components/parameters/codeInQuery'
     get:
       tags:
         - oauth2
@@ -185,6 +180,13 @@ components:
       in: cookie
       name: sessions
   parameters:
+    codeInQuery:
+      name: code
+      in: query
+      required: true
+      description: OAuth2.0のcode
+      schema:
+        type: string
     fileIDInPath:
       name: fileID
       in: path

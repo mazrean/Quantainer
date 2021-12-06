@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -85,4 +87,47 @@ func (f *File) PostFile(c echo.Context) error {
 		Creator:   string(fileInfo.Creator.GetName()),
 		CreatedAt: fileInfo.File.GetCreatedAt(),
 	})
+}
+
+func (f *File) GetFile(c echo.Context, strFileID Openapi.FileIDInPath) error {
+	err := f.checker.check(c)
+	if err != nil {
+		return err
+	}
+
+	uuidFileID, err := uuid.Parse(string(strFileID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid file id")
+	}
+
+	buf := bytes.NewBuffer(nil)
+	file, err := f.fileService.Download(c.Request().Context(), values.NewFileIDFromUUID(uuidFileID), buf)
+	if errors.Is(err, service.ErrNoFile) {
+		return echo.NewHTTPError(http.StatusNotFound, "file not found")
+	}
+	if err != nil {
+		log.Printf("error: failed to get file: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to download file")
+	}
+
+	var mime string
+	switch file.GetType() {
+	case values.FileTypeJpeg:
+		mime = "image/jpeg"
+	case values.FileTypePng:
+		mime = "image/png"
+	case values.FileTypeWebP:
+		mime = "image/webp"
+	case values.FileTypeSvg:
+		mime = "image/svg+xml"
+	case values.FileTypeGif:
+		mime = "image/gif"
+	case values.FileTypeOther:
+		mime = "application/octet-stream"
+	default:
+		log.Printf("error: unknown file type: %d", file.GetType())
+		return echo.NewHTTPError(http.StatusInternalServerError, "unexpected file type")
+	}
+
+	return c.Stream(http.StatusOK, mime, buf)
 }

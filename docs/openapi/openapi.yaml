@@ -416,6 +416,11 @@ components:
             description: ファイルの作成者
             type: string
             example: mazrean
+          fileID:
+            description: ファイルid
+            type: string
+            format: uuid
+            example: eb4a287d-15d9-4f12-8fff-bd088b12ba80
           createdAt:
             description: リソース作成時刻
             type: string

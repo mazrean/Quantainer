@@ -106,7 +106,7 @@ func (r *Resource) SaveResource(ctx context.Context, fileID values.FileID, resou
 	return nil
 }
 
-func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID) (*repository.ResourceWithCreator, error) {
+func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID) (*repository.ResourceInfo, error) {
 	db, err := r.db.getDB(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get db: %w", err)
@@ -117,8 +117,19 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 		Session(&gorm.Session{}).
 		Joins("ResourceType").
 		Joins("File").
+		Joins("File.FileType").
 		Where("id = ?", uuid.UUID(resourceID)).
-		Select("resources.name", "resources.comment", "resources.created_at", "resource_types.name", "files.creator_id").
+		Select(
+			"resources.name",
+			"resources.comment",
+			"resources.created_at",
+			"resource_types.name",
+			"files.id",
+			"file_types.name",
+			"files.creator_id",
+			"files.created_at",
+			"file_types.name",
+		).
 		Take(&resourceTable).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, repository.ErrRecordNotFound
@@ -137,7 +148,25 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 		return nil, fmt.Errorf("invalid resource type: %s", resourceTable.ResourceType.Name)
 	}
 
-	resource := repository.ResourceWithCreator{
+	var fileType values.FileType
+	switch resourceTable.File.FileType.Name {
+	case fileTypeJpeg:
+		fileType = values.FileTypeJpeg
+	case fileTypePng:
+		fileType = values.FileTypePng
+	case fileTypeWebP:
+		fileType = values.FileTypeWebP
+	case fileTypeSvg:
+		fileType = values.FileTypeSvg
+	case fileTypeGif:
+		fileType = values.FileTypeGif
+	case fileTypeOther:
+		fileType = values.FileTypeOther
+	default:
+		return nil, fmt.Errorf("invalid file type: %s", resourceTable.File.FileType.Name)
+	}
+
+	resource := repository.ResourceInfo{
 		Resource: domain.NewResource(
 			resourceID,
 			values.NewResourceName(resourceTable.Name),
@@ -145,13 +174,18 @@ func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID
 			values.NewResourceComment(resourceTable.Comment),
 			resourceTable.CreatedAt,
 		),
+		File: domain.NewFile(
+			values.NewFileIDFromUUID(resourceTable.File.ID),
+			fileType,
+			resourceTable.File.CreatedAt,
+		),
 		Creator: values.NewTrapMemberID(resourceTable.File.CreatorID),
 	}
 
 	return &resource, nil
 }
 
-func (r *Resource) GetResources(ctx context.Context, params *repository.ResourceSearchParams) ([]*repository.ResourceWithCreator, error) {
+func (r *Resource) GetResources(ctx context.Context, params *repository.ResourceSearchParams) ([]*repository.ResourceInfo, error) {
 	db, err := r.db.getDB(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get db: %w", err)
@@ -179,17 +213,29 @@ func (r *Resource) GetResources(ctx context.Context, params *repository.Resource
 		Session(&gorm.Session{}).
 		Joins("ResourceType").
 		Joins("File").
+		Joins("File.FileType").
 		Where("resource_types.name IN ?", resourceTypeNames).
-		Where("files.creator_id = ?", creatorIDs).
+		Where("files.creator_id IN ?", creatorIDs).
 		Limit(params.Limit).
 		Offset(params.Offset).
-		Select("resources.id", "resources.name", "resources.comment", "resources.created_at", "resource_types.name", "files.creator_id").
+		Select(
+			"resources.id",
+			"resources.name",
+			"resources.comment",
+			"resources.created_at",
+			"resource_types.name",
+			"files.id",
+			"file_types.name",
+			"files.creator_id",
+			"files.created_at",
+			"file_types.name",
+		).
 		Find(&resourceTables).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get resources: %w", err)
 	}
 
-	resources := make([]*repository.ResourceWithCreator, 0, len(resourceTables))
+	resources := make([]*repository.ResourceInfo, 0, len(resourceTables))
 	for _, resourceTable := range resourceTables {
 		var resourceType values.ResourceType
 		switch resourceTable.ResourceType.Name {
@@ -201,13 +247,36 @@ func (r *Resource) GetResources(ctx context.Context, params *repository.Resource
 			return nil, fmt.Errorf("invalid resource type: %s", resourceTable.ResourceType.Name)
 		}
 
-		resource := repository.ResourceWithCreator{
+		var fileType values.FileType
+		switch resourceTable.File.FileType.Name {
+		case fileTypeJpeg:
+			fileType = values.FileTypeJpeg
+		case fileTypePng:
+			fileType = values.FileTypePng
+		case fileTypeWebP:
+			fileType = values.FileTypeWebP
+		case fileTypeSvg:
+			fileType = values.FileTypeSvg
+		case fileTypeGif:
+			fileType = values.FileTypeGif
+		case fileTypeOther:
+			fileType = values.FileTypeOther
+		default:
+			return nil, fmt.Errorf("invalid file type: %s", resourceTable.File.FileType.Name)
+		}
+
+		resource := repository.ResourceInfo{
 			Resource: domain.NewResource(
 				values.ResourceID(resourceTable.ID),
 				values.NewResourceName(resourceTable.Name),
 				resourceType,
 				values.NewResourceComment(resourceTable.Comment),
 				resourceTable.CreatedAt,
+			),
+			File: domain.NewFile(
+				values.NewFileIDFromUUID(resourceTable.File.ID),
+				fileType,
+				resourceTable.File.CreatedAt,
 			),
 			Creator: values.NewTrapMemberID(resourceTable.File.CreatorID),
 		}

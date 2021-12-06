@@ -12,6 +12,7 @@ tags:
   - name: oauth2
   - name: user
   - name: file
+  - name: resource
 paths:
   /oauth2/callback:
     parameters:
@@ -125,6 +126,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/File'
+        "400":
+          description: リクエストの形式が誤っている
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /files/{fileID}/resources:
+    parameters:
+      - $ref: '#/components/parameters/fileIDInPath'
+    post:
+      tags:
+        - file
+        - resource
+      summary: リソースの作成
+      description: リソースの作成
+      operationId: postResource
+      security:
+        - traPMemberAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewResource'
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        "400":
+          description: リクエストの形式が誤っている
         "401":
           description: ログインしていない
         "500":
@@ -191,7 +224,7 @@ components:
       name: fileID
       in: path
       required: true
-      description: ファイルのID
+      description: ファイルのid
       schema:
         type: string
         format: uuid

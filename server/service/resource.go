@@ -29,5 +29,6 @@ type ResourceSearchParams struct {
 
 type ResourceInfo struct {
 	*domain.Resource
+	*domain.File
 	Creator *UserInfo
 }

@@ -2,11 +2,13 @@ package gorm2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/mazrean/Quantainer/domain"
 	"github.com/mazrean/Quantainer/domain/values"
+	"github.com/mazrean/Quantainer/repository"
 	"gorm.io/gorm"
 )
 
@@ -102,4 +104,49 @@ func (r *Resource) SaveResource(ctx context.Context, fileID values.FileID, resou
 	}
 
 	return nil
+}
+
+func (r *Resource) GetResource(ctx context.Context, resourceID values.ResourceID) (*repository.ResourceWithCreator, error) {
+	db, err := r.db.getDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get db: %w", err)
+	}
+
+	var resourceTable ResourceTable
+	err = db.
+		Session(&gorm.Session{}).
+		Joins("ResourceType").
+		Joins("File").
+		Where("id = ?", uuid.UUID(resourceID)).
+		Select("resources.name", "resources.comment", "resources.created_at", "resource_types.name", "files.creator_id").
+		Take(&resourceTable).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, repository.ErrRecordNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resource: %w", err)
+	}
+
+	var resourceType values.ResourceType
+	switch resourceTable.ResourceType.Name {
+	case resourceTypeImage:
+		resourceType = values.ResourceTypeImage
+	case resourceTypeOther:
+		resourceType = values.ResourceTypeOther
+	default:
+		return nil, fmt.Errorf("invalid resource type: %s", resourceTable.ResourceType.Name)
+	}
+
+	resource := repository.ResourceWithCreator{
+		Resource: domain.NewResource(
+			resourceID,
+			values.NewResourceName(resourceTable.Name),
+			resourceType,
+			values.NewResourceComment(resourceTable.Comment),
+			resourceTable.CreatedAt,
+		),
+		Creator: values.NewTrapMemberID(resourceTable.File.CreatorID),
+	}
+
+	return &resource, nil
 }

@@ -96,3 +96,52 @@ func (r *Resource) PostResource(c echo.Context, strFileID Openapi.FileIDInPath) 
 		NewResource: newResource,
 	})
 }
+
+func (r *Resource) GetResource(c echo.Context, resourceID Openapi.ResourceIDInPath) error {
+	err := r.checker.check(c)
+	if err != nil {
+		return err
+	}
+
+	session, err := getSession(c)
+	if err != nil {
+		log.Printf("error: failed to get session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	authSession, err := r.session.getAuthSession(session)
+	if err != nil {
+		log.Printf("error: failed to get auth session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get auth session")
+	}
+
+	uuidResourceID, err := uuid.Parse(string(resourceID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid resource id")
+	}
+
+	resource, err := r.resourceService.GetResource(
+		c.Request().Context(),
+		authSession,
+		values.NewResourceIDFromUUID(uuidResourceID),
+	)
+	if errors.Is(err, service.ErrNoResource) {
+		return echo.NewHTTPError(http.StatusNotFound, "resource not found")
+	}
+	if err != nil {
+		log.Printf("error: failed to get resource: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get resource")
+	}
+
+	return c.JSON(http.StatusOK, &Openapi.Resource{
+		Id:        uuid.UUID(resource.Resource.GetID()).String(),
+		Creator:   string(resource.Creator.GetName()),
+		FileID:    uuid.UUID(resource.File.GetID()).String(),
+		CreatedAt: resource.Resource.GetCreatedAt(),
+		NewResource: Openapi.NewResource{
+			Name:         string(resource.Resource.GetName()),
+			Comment:      string(resource.Resource.GetComment()),
+			ResourceType: Openapi.ResourceType(resource.Resource.GetType()),
+		},
+	})
+}

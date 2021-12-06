@@ -23,7 +23,7 @@ type FileTable struct {
 }
 
 func (ft *FileTable) TableName() string {
-	return "game_files"
+	return "files"
 }
 
 type FileTypeTable struct {

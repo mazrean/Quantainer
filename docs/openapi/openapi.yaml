@@ -429,4 +429,5 @@ components:
         required:
           - id
           - creator
+          - fileID
           - createdAt

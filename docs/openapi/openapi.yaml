@@ -134,6 +134,49 @@ paths:
           description: ログインしていない
         "500":
           description: 予期しないエラー
+  /files/{fileID}:
+    parameters:
+      - $ref: '#/components/parameters/fileIDInPath'
+    get:
+      tags:
+        - file
+      summary: ファイルの取得
+      description: ファイルの取得
+      operationId: getFile
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            images/svg+xml:
+              schema:
+                type: string
+                format: svg
+            images/gif:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
 
 components:
   securitySchemes:
@@ -141,6 +184,15 @@ components:
       type: apiKey
       in: cookie
       name: sessions
+  parameters:
+    fileIDInPath:
+      name: fileID
+      in: path
+      required: true
+      description: ファイルのID
+      schema:
+        type: string
+        format: uuid
   schemas:
     User:
       description: ユーザー

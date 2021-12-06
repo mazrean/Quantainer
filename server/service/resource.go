@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"io"
 
 	"github.com/mazrean/Quantainer/domain"
 	"github.com/mazrean/Quantainer/domain/values"
@@ -19,7 +18,6 @@ type Resource interface {
 	) (*ResourceInfo, error)
 	GetResource(ctx context.Context, session *domain.OIDCSession, resourceID values.ResourceID) (*ResourceInfo, error)
 	GetResources(ctx context.Context, session *domain.OIDCSession, params *ResourceSearchParams) ([]*ResourceInfo, error)
-	DownloadResourceFile(ctx context.Context, resourceID values.ResourceID, writer io.Writer) (*domain.File, error)
 }
 
 type ResourceSearchParams struct {
@@ -31,5 +29,6 @@ type ResourceSearchParams struct {
 
 type ResourceInfo struct {
 	*domain.Resource
+	*domain.File
 	Creator *UserInfo
 }

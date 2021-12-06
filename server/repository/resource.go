@@ -10,12 +10,13 @@ import (
 
 type Resource interface {
 	SaveResource(ctx context.Context, fileID values.FileID, resource *domain.Resource) error
-	GetResource(ctx context.Context, resourceID values.ResourceID) (*ResourceWithCreator, error)
-	GetResources(ctx context.Context, params *ResourceSearchParams) ([]*ResourceWithCreator, error)
+	GetResource(ctx context.Context, resourceID values.ResourceID) (*ResourceInfo, error)
+	GetResources(ctx context.Context, params *ResourceSearchParams) ([]*ResourceInfo, error)
 }
 
-type ResourceWithCreator struct {
+type ResourceInfo struct {
 	*domain.Resource
+	*domain.File
 	Creator values.TraPMemberID
 }
 

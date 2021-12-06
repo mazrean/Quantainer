@@ -4,21 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/mazrean/Quantainer/domain"
 	"github.com/mazrean/Quantainer/domain/values"
 	"github.com/mazrean/Quantainer/repository"
 	"github.com/mazrean/Quantainer/service"
-	"github.com/mazrean/Quantainer/storage"
 )
 
 type Resource struct {
 	dbRepository       repository.DB
 	fileRepository     repository.File
 	resourceRepository repository.Resource
-	fileStorage        storage.File
 	userUtils          *UserUtils
 }
 
@@ -26,14 +23,12 @@ func NewResource(
 	dbRepository repository.DB,
 	fileRepository repository.File,
 	resourceRepository repository.Resource,
-	fileStorage storage.File,
 	userUtils *UserUtils,
 ) *Resource {
 	return &Resource{
 		dbRepository:       dbRepository,
 		fileRepository:     fileRepository,
 		resourceRepository: resourceRepository,
-		fileStorage:        fileStorage,
 		userUtils:          userUtils,
 	}
 }
@@ -51,9 +46,12 @@ func (r *Resource) CreateResource(
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	var fileInfo *repository.FileWithCreator
+
 	var resource *domain.Resource
 	err = r.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
-		fileInfo, err := r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
+		var err error
+		fileInfo, err = r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
 		if errors.Is(err, repository.ErrRecordNotFound) {
 			return service.ErrNoFile
 		}
@@ -86,6 +84,7 @@ func (r *Resource) CreateResource(
 
 	return &service.ResourceInfo{
 		Resource: resource,
+		File:     fileInfo.File,
 		Creator:  user,
 	}, nil
 }
@@ -118,6 +117,7 @@ func (r *Resource) GetResource(ctx context.Context, session *domain.OIDCSession,
 
 	return &service.ResourceInfo{
 		Resource: resourceInfo.Resource,
+		File:     resourceInfo.File,
 		Creator:  creator,
 	}, nil
 }
@@ -167,26 +167,10 @@ func (r *Resource) GetResources(ctx context.Context, session *domain.OIDCSession
 
 		resources = append(resources, &service.ResourceInfo{
 			Resource: resourceInfo.Resource,
+			File:     resourceInfo.File,
 			Creator:  user,
 		})
 	}
 
 	return resources, nil
-}
-
-func (r *Resource) DownloadResourceFile(ctx context.Context, resourceID values.ResourceID, writer io.Writer) (*domain.File, error) {
-	file, err := r.fileRepository.GetFileByResourceID(ctx, resourceID)
-	if errors.Is(err, repository.ErrRecordNotFound) {
-		return nil, service.ErrNoResource
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get resource: %w", err)
-	}
-
-	err = r.fileStorage.GetFile(ctx, file, writer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get file: %w", err)
-	}
-
-	return file, nil
 }

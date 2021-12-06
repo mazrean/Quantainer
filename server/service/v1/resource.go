@@ -46,9 +46,12 @@ func (r *Resource) CreateResource(
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	var fileInfo *repository.FileWithCreator
+
 	var resource *domain.Resource
 	err = r.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
-		fileInfo, err := r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
+		var err error
+		fileInfo, err = r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
 		if errors.Is(err, repository.ErrRecordNotFound) {
 			return service.ErrNoFile
 		}
@@ -81,6 +84,7 @@ func (r *Resource) CreateResource(
 
 	return &service.ResourceInfo{
 		Resource: resource,
+		File:     fileInfo.File,
 		Creator:  user,
 	}, nil
 }
@@ -113,6 +117,7 @@ func (r *Resource) GetResource(ctx context.Context, session *domain.OIDCSession,
 
 	return &service.ResourceInfo{
 		Resource: resourceInfo.Resource,
+		File:     resourceInfo.File,
 		Creator:  creator,
 	}, nil
 }
@@ -162,6 +167,7 @@ func (r *Resource) GetResources(ctx context.Context, session *domain.OIDCSession
 
 		resources = append(resources, &service.ResourceInfo{
 			Resource: resourceInfo.Resource,
+			File:     resourceInfo.File,
 			Creator:  user,
 		})
 	}

@@ -37,7 +37,7 @@ func (o *OAuth2) Callback(c echo.Context, params Openapi.CallbackParams) error {
 		return err
 	}
 
-	code := values.NewOIDCAuthorizationCode(params.Code)
+	code := values.NewOIDCAuthorizationCode(string(params.Code))
 
 	session, err := o.session.getSession(c)
 	if err != nil {

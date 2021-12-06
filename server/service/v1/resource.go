@@ -123,14 +123,34 @@ func (r *Resource) GetResource(ctx context.Context, session *domain.OIDCSession,
 }
 
 func (r *Resource) GetResources(ctx context.Context, session *domain.OIDCSession, params *service.ResourceSearchParams) ([]*service.ResourceInfo, error) {
-	resourceInfos, err := r.resourceRepository.GetResources(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get resources: %w", err)
-	}
-
 	users, err := r.userUtils.getAllActiveUser(ctx, session)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+
+	userNameMap := make(map[values.TraPMemberName]*service.UserInfo)
+	for _, user := range users {
+		userNameMap[user.GetName()] = user
+	}
+
+	userList := make([]*service.UserInfo, 0, len(params.Users))
+	for _, userName := range params.Users {
+		user, ok := userNameMap[userName]
+		if !ok {
+			return nil, service.ErrNoUser
+		}
+
+		userList = append(userList, user)
+	}
+
+	resourceInfos, err := r.resourceRepository.GetResources(ctx, &repository.ResourceSearchParams{
+		ResourceTypes: params.ResourceTypes,
+		Users:         userList,
+		Limit:         params.Limit,
+		Offset:        params.Offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resources: %w", err)
 	}
 
 	userMap := make(map[values.TraPMemberID]*service.UserInfo)

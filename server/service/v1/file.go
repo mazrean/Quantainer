@@ -3,6 +3,7 @@ package v1
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -97,4 +98,21 @@ func (f *File) Upload(ctx context.Context, session *domain.OIDCSession, reader i
 		File:    file,
 		Creator: user,
 	}, nil
+}
+
+func (f *File) Download(ctx context.Context, fileID values.FileID, writer io.Writer) (*domain.File, error) {
+	file, err := f.fileRepository.GetFile(ctx, fileID, repository.LockTypeNone)
+	if errors.Is(err, repository.ErrRecordNotFound) {
+		return nil, service.ErrNoFile
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resource: %w", err)
+	}
+
+	err = f.fileStorage.GetFile(ctx, file.File, writer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+
+	return file.File, nil
 }

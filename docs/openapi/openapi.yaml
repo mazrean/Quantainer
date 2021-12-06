@@ -223,6 +223,33 @@ paths:
           description: ログインしていない
         "500":
           description: 予期しないエラー
+  /resources:
+    get:
+      tags:
+        - resource
+      summary: リソースの情報の取得
+      description: リソースの情報の取得
+      operationId: getResources
+      security:
+        - traPMemberAuth: []
+      parameters:
+        - $ref: '#/components/parameters/typeInQuery'
+        - $ref: '#/components/parameters/userInQuery'
+        - $ref: '#/components/parameters/limitInQuery'
+        - $ref: '#/components/parameters/offsetInQuery'
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resource'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
 
 components:
   securitySchemes:
@@ -254,6 +281,40 @@ components:
       schema:
         type: string
         format: uuid
+    typeInQuery:
+      name: type
+      in: query
+      required: false
+      description: リソースの種類
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/ResourceType'
+    userInQuery:
+      name: user
+      in: query
+      required: false
+      description: ファイル登録者
+      schema:
+        type: array
+        items:
+          description: traQID（UUIDでない方）
+          type: string
+          example: mazrean
+    limitInQuery:
+      name: limit
+      in: query
+      required: false
+      description: 取得するデータの数
+      schema:
+        type: integer
+    offsetInQuery:
+      name: offset
+      in: query
+      required: false
+      description: 取得するデータのoffset
+      schema:
+        type: integer
   schemas:
     User:
       description: ユーザー

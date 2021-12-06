@@ -63,6 +63,10 @@ func (r *Resource) CreateResource(
 			return service.ErrForbidden
 		}
 
+		if !fileInfo.File.GetType().IsValidResourceType(resourceType) {
+			return service.ErrInvalidResourceType
+		}
+
 		resource = domain.NewResource(
 			values.NewResourceID(),
 			name,

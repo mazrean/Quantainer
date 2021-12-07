@@ -44,20 +44,40 @@ func (g *Group) GetName() values.GroupName {
 	return g.name
 }
 
+func (g *Group) SetName(name values.GroupName) {
+	g.name = name
+}
+
 func (g *Group) GetType() values.GroupType {
 	return g.groupType
+}
+
+func (g *Group) SetType(groupType values.GroupType) {
+	g.groupType = groupType
 }
 
 func (g *Group) GetDescription() values.GroupDescription {
 	return g.description
 }
 
+func (g *Group) SetDescription(description values.GroupDescription) {
+	g.description = description
+}
+
 func (g *Group) GetReadPermission() values.GroupReadPermission {
 	return g.readPermission
 }
 
+func (g *Group) SetReadPermission(readPermission values.GroupReadPermission) {
+	g.readPermission = readPermission
+}
+
 func (g *Group) GetWritePermission() values.GroupWritePermission {
 	return g.writePermission
+}
+
+func (g *Group) SetWritePermission(writePermission values.GroupWritePermission) {
+	g.writePermission = writePermission
 }
 
 func (g *Group) IsValidPermission() bool {

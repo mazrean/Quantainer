@@ -339,3 +339,99 @@ func (g *Group) DeleteGroup(ctx context.Context, session *domain.OIDCSession, id
 
 	return nil
 }
+
+func (g *Group) AddResource(ctx context.Context, session *domain.OIDCSession, id values.GroupID, resource values.ResourceID) ([]*service.ResourceInfo, error) {
+	user, err := g.userUtils.getMe(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	users, err := g.userUtils.getAllActiveUser(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+	userMap := make(map[values.TraPMemberID]*service.UserInfo)
+	for _, user := range users {
+		userMap[user.GetID()] = user
+	}
+
+	var resources []*service.ResourceInfo
+	err = g.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
+		groupInfo, err := g.groupRepository.GetGroup(ctx, id, repository.LockTypeRecord)
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			return service.ErrNoGroup
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get group: %w", err)
+		}
+
+		resourceInfo, err := g.resourceRepository.GetResource(ctx, resource)
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			return service.ErrNoResource
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get main resource: %w", err)
+		}
+
+		creator, ok := userMap[resourceInfo.Creator]
+		if !ok {
+			return service.ErrNoUser
+		}
+
+		if groupInfo.Group.GetWritePermission() != values.GroupWritePermissionPublic {
+			administratorIDs, err := g.administratorRepository.GetAdministrators(ctx, groupInfo.GetID())
+			if err != nil {
+				return fmt.Errorf("failed to get administrators: %w", err)
+			}
+
+			for i, administrator := range administratorIDs {
+				if administrator == user.GetID() {
+					break
+				}
+
+				if i == len(administratorIDs)-1 {
+					return service.ErrForbidden
+				}
+			}
+		}
+
+		nowResources, err := g.resourceRepository.GetResources(ctx, &repository.ResourceSearchParams{
+			Groups: []*domain.Group{groupInfo.Group},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get resource: %w", err)
+		}
+
+		for _, oldResource := range nowResources {
+			if oldResource.Resource.GetID() == resource {
+				return service.ErrResourceAlreadyExists
+			}
+		}
+
+		err = g.groupRepository.AddResources(ctx, groupInfo.Group, []values.ResourceID{resource})
+		if err != nil {
+			return fmt.Errorf("failed to add resource: %w", err)
+		}
+
+		resources = make([]*service.ResourceInfo, 0, len(nowResources)+1)
+		resources = append(resources, &service.ResourceInfo{
+			Resource: resourceInfo.Resource,
+			File:     resourceInfo.File,
+			Creator:  creator,
+		})
+		for _, oldResource := range nowResources {
+			resources = append(resources, &service.ResourceInfo{
+				Resource: oldResource.Resource,
+				File:     oldResource.File,
+				Creator:  userMap[oldResource.Creator],
+			})
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed in transaction: %w", err)
+	}
+
+	return resources, nil
+}

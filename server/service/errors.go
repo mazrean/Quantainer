@@ -15,4 +15,5 @@ var (
 	ErrInvalidResourceType    = errors.New("invalid resource type")
 	ErrInvalidPermission      = errors.New("invalid permission")
 	ErrResourceAlreadyExists  = errors.New("resource already exists")
+	ErrNotEditted             = errors.New("not editted")
 )

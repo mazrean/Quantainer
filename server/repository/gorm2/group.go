@@ -299,3 +299,19 @@ func (g *Group) EditGroup(ctx context.Context, group *domain.Group, mainResource
 
 	return nil
 }
+
+func (g *Group) DeleteGroup(ctx context.Context, group *domain.Group) error {
+	db, err := g.db.getDB(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get db: %w", err)
+	}
+
+	err = db.
+		Where("id = ?", uuid.UUID(group.GetID())).
+		Delete(&GroupTable{}).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete group: %w", err)
+	}
+
+	return nil
+}

@@ -12,6 +12,7 @@ type Resource interface {
 	SaveResource(ctx context.Context, fileID values.FileID, resource *domain.Resource) error
 	GetResource(ctx context.Context, resourceID values.ResourceID) (*ResourceInfo, error)
 	GetResources(ctx context.Context, params *ResourceSearchParams) ([]*ResourceInfo, error)
+	GetResourcesByIDs(ctx context.Context, resourceIDs []values.ResourceID, lockType LockType) ([]*domain.Resource, error)
 }
 
 type ResourceInfo struct {
@@ -23,6 +24,7 @@ type ResourceInfo struct {
 type ResourceSearchParams struct {
 	ResourceTypes []values.ResourceType
 	Users         []*service.UserInfo
+	Groups        []*domain.Group
 	Limit         int
 	Offset        int
 }

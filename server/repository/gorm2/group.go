@@ -371,3 +371,123 @@ func (g *Group) DeleteResources(ctx context.Context, group *domain.Group, resour
 
 	return nil
 }
+
+func (g *Group) GetGroup(ctx context.Context, groupID values.GroupID, lockType repository.LockType) (*repository.GroupInfo, error) {
+	db, err := g.db.getDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get db: %w", err)
+	}
+
+	db, err = g.db.setLock(db, lockType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set lock: %w", err)
+	}
+
+	var groupTable GroupTable
+	err = db.
+		Joins("GroupType").
+		Joins("ReadPermission").
+		Joins("WritePermission").
+		Joins("MainResource").
+		Where("id = ?", uuid.UUID(groupID)).
+		Take(&groupTable).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group: %w", err)
+	}
+
+	var groupType values.GroupType
+	switch groupTable.GroupType.Name {
+	case groupTypeArtBook:
+		groupType = values.GroupTypeArtBook
+	case groupTypeOther:
+		groupType = values.GroupTypeOther
+	default:
+		return nil, fmt.Errorf("invalid group type: %s", groupTable.GroupType.Name)
+	}
+
+	var readPermission values.GroupReadPermission
+	switch groupTable.ReadPermission.Name {
+	case readPermissionPublic:
+		readPermission = values.GroupReadPermissionPublic
+	case readPermissionPrivate:
+		readPermission = values.GroupReadPermissionPrivate
+	default:
+		return nil, fmt.Errorf("invalid read permission: %s", groupTable.ReadPermission.Name)
+	}
+
+	var writePermission values.GroupWritePermission
+	switch groupTable.WritePermission.Name {
+	case writePermissionPublic:
+		writePermission = values.GroupWritePermissionPublic
+	case writePermissionPrivate:
+		writePermission = values.GroupWritePermissionPrivate
+	default:
+		return nil, fmt.Errorf("invalid write permission: %s", groupTable.WritePermission.Name)
+	}
+
+	var resourceTypeTable ResourceTypeTable
+	err = db.
+		Where("id = ?", groupTable.MainResource.ResourceTypeID).
+		Take(&resourceTypeTable).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get main resource type: %w", err)
+	}
+
+	var resourceFileTable FileTable
+	err = db.
+		Joins("FileType").
+		Where("id = ?", groupTable.MainResource.FileID).
+		Take(&resourceFileTable).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get main resource file: %w", err)
+	}
+
+	var resourceType values.ResourceType
+	switch resourceTypeTable.Name {
+	case resourceTypeImage:
+		resourceType = values.ResourceTypeImage
+	case resourceTypeOther:
+		resourceType = values.ResourceTypeOther
+	default:
+		return nil, fmt.Errorf("invalid resource type: %s", resourceTypeTable.Name)
+	}
+
+	var fileType values.FileType
+	switch resourceFileTable.FileType.Name {
+	case fileTypeJpeg:
+		fileType = values.FileTypeJpeg
+	case fileTypePng:
+		fileType = values.FileTypePng
+	case fileTypeOther:
+		fileType = values.FileTypeOther
+	default:
+		return nil, fmt.Errorf("invalid file type: %s", resourceFileTable.FileType.Name)
+	}
+
+	return &repository.GroupInfo{
+		Group: domain.NewGroup(
+			values.NewGroupIDFromUUID(groupTable.ID),
+			values.NewGroupName(groupTable.Name),
+			groupType,
+			values.NewGroupDescription(groupTable.Description),
+			readPermission,
+			writePermission,
+			groupTable.CreatedAt,
+		),
+		MainResource: &repository.ResourceInfo{
+			Resource: domain.NewResource(
+				values.NewResourceIDFromUUID(groupTable.MainResource.ID),
+				values.NewResourceName(groupTable.MainResource.Name),
+				resourceType,
+				values.NewResourceComment(groupTable.MainResource.Comment),
+				groupTable.MainResource.CreatedAt,
+			),
+			File: domain.NewFile(
+				values.NewFileIDFromUUID(resourceFileTable.ID),
+				fileType,
+				resourceFileTable.CreatedAt,
+			),
+			Creator: values.NewTrapMemberID(resourceFileTable.CreatorID),
+		},
+	}, nil
+}

@@ -361,7 +361,6 @@ components:
           format: uuid
           example: eb4a287d-15d9-4f12-8fff-bd088b12ba80
         type:
-          description: ファイルの種類
           $ref: '#/components/schemas/FileType'
         creator:
           description: ファイルの作成者
@@ -392,7 +391,6 @@ components:
           type: string
           example: ターゲットカーソル1
         resourceType:
-          description: リソースの種類
           $ref: '#/components/schemas/ResourceType'
         comment:
           description: リソースのコメント

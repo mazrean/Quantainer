@@ -39,3 +39,25 @@ func (a *Administrator) SaveAdministrators(ctx context.Context, groupID values.G
 
 	return nil
 }
+
+func (a *Administrator) GetAdministrators(ctx context.Context, groupID values.GroupID) ([]values.TraPMemberID, error) {
+	db, err := a.db.getDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get db: %w", err)
+	}
+
+	var administratorTables []AdministratorTable
+	err = db.
+		Where("group_id = ?", uuid.UUID(groupID)).
+		Find(&administratorTables).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get administrators: %w", err)
+	}
+
+	administrators := make([]values.TraPMemberID, 0, len(administratorTables))
+	for _, administratorTable := range administratorTables {
+		administrators = append(administrators, values.NewTrapMemberID(administratorTable.UserID))
+	}
+
+	return administrators, nil
+}

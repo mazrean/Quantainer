@@ -8,6 +8,7 @@ import (
 	"github.com/mazrean/Quantainer/domain"
 	"github.com/mazrean/Quantainer/domain/values"
 	"github.com/mazrean/Quantainer/repository"
+	"github.com/mazrean/Quantainer/service"
 	"gorm.io/gorm"
 )
 
@@ -490,4 +491,142 @@ func (g *Group) GetGroup(ctx context.Context, groupID values.GroupID, lockType r
 			Creator: values.NewTrapMemberID(resourceFileTable.CreatorID),
 		},
 	}, nil
+}
+
+func (g *Group) GetGroups(ctx context.Context, user *service.UserInfo, params *repository.GroupSearchParams) ([]*repository.GroupInfo, error) {
+	db, err := g.db.getDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get db: %w", err)
+	}
+
+	query := db.
+		Joins("GroupType").
+		Joins("ReadPermission").
+		Joins("WritePermission").
+		Preload("MainResource").
+		Preload("MainResource.ResourceType").
+		Preload("MainResource.File").
+		Preload("MainResource.File.FileType")
+
+	if len(params.GroupTypes) != 0 {
+		groupTypeNames := make([]string, 0, len(params.GroupTypes))
+		for _, groupType := range params.GroupTypes {
+			switch groupType {
+			case values.GroupTypeArtBook:
+				groupTypeNames = append(groupTypeNames, groupTypeArtBook)
+			case values.GroupTypeOther:
+				groupTypeNames = append(groupTypeNames, groupTypeOther)
+			default:
+				return nil, fmt.Errorf("invalid group type: %d", groupType)
+			}
+		}
+
+		query = query.Where("GroupType.name IN (?)", groupTypeNames)
+	}
+
+	if len(params.Users) != 0 {
+		users := make([]uuid.UUID, 0, len(params.Users))
+		for _, user := range params.Users {
+			users = append(users, uuid.UUID(user.GetID()))
+		}
+
+		query = query.Where("MainResource.creator_id IN (?)", users)
+	}
+
+	if params.Limit != -1 {
+		query = query.Limit(params.Limit)
+	}
+	if params.Offset != 0 {
+		query = query.Offset(params.Offset)
+	}
+
+	var groupTables []GroupTable
+	err = query.Find(&groupTables).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group: %w", err)
+	}
+
+	var groups []*repository.GroupInfo
+	for _, groupTable := range groupTables {
+		var groupType values.GroupType
+		switch groupTable.GroupType.Name {
+		case groupTypeArtBook:
+			groupType = values.GroupTypeArtBook
+		case groupTypeOther:
+			groupType = values.GroupTypeOther
+		default:
+			return nil, fmt.Errorf("invalid group type: %s", groupTable.GroupType.Name)
+		}
+
+		var readPermission values.GroupReadPermission
+		switch groupTable.ReadPermission.Name {
+		case readPermissionPublic:
+			readPermission = values.GroupReadPermissionPublic
+		case readPermissionPrivate:
+			readPermission = values.GroupReadPermissionPrivate
+		default:
+			return nil, fmt.Errorf("invalid read permission: %s", groupTable.ReadPermission.Name)
+		}
+
+		var writePermission values.GroupWritePermission
+		switch groupTable.WritePermission.Name {
+		case writePermissionPublic:
+			writePermission = values.GroupWritePermissionPublic
+		case writePermissionPrivate:
+			writePermission = values.GroupWritePermissionPrivate
+		default:
+			return nil, fmt.Errorf("invalid write permission: %s", groupTable.WritePermission.Name)
+		}
+
+		var resourceType values.ResourceType
+		switch groupTable.MainResource.ResourceType.Name {
+		case resourceTypeImage:
+			resourceType = values.ResourceTypeImage
+		case resourceTypeOther:
+			resourceType = values.ResourceTypeOther
+		default:
+			return nil, fmt.Errorf("invalid resource type: %s", groupTable.MainResource.ResourceType.Name)
+		}
+
+		var fileType values.FileType
+		switch groupTable.MainResource.File.FileType.Name {
+		case fileTypeJpeg:
+			fileType = values.FileTypeJpeg
+		case fileTypePng:
+			fileType = values.FileTypePng
+		case fileTypeOther:
+			fileType = values.FileTypeOther
+		default:
+			return nil, fmt.Errorf("invalid file type: %s", groupTable.MainResource.File.FileType.Name)
+		}
+
+		groups = append(groups, &repository.GroupInfo{
+			Group: domain.NewGroup(
+				values.NewGroupIDFromUUID(groupTable.ID),
+				values.NewGroupName(groupTable.Name),
+				groupType,
+				values.NewGroupDescription(groupTable.Description),
+				readPermission,
+				writePermission,
+				groupTable.CreatedAt,
+			),
+			MainResource: &repository.ResourceInfo{
+				Resource: domain.NewResource(
+					values.NewResourceIDFromUUID(groupTable.MainResource.ID),
+					values.NewResourceName(groupTable.MainResource.Name),
+					resourceType,
+					values.NewResourceComment(groupTable.MainResource.Comment),
+					groupTable.MainResource.CreatedAt,
+				),
+				File: domain.NewFile(
+					values.NewFileIDFromUUID(groupTable.MainResource.File.ID),
+					fileType,
+					groupTable.MainResource.File.CreatedAt,
+				),
+				Creator: values.NewTrapMemberID(groupTable.MainResource.File.CreatorID),
+			},
+		})
+	}
+
+	return groups, nil
 }

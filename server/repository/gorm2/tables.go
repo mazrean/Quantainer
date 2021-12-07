@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 var (
@@ -72,11 +73,17 @@ type GroupTable struct {
 	Name              string               `gorm:"type:varchar(64);size:64;not null"`
 	GroupTypeID       int                  `gorm:"type:tinyint;not null"`
 	Description       string               `gorm:"type:varchar(400);size:400;not null"`
+	MainResourceID    uuid.UUID            `gorm:"type:varchar(36);not null"`
 	ReadPermissionID  int                  `gorm:"type:tinyint;not null"`
 	WritePermissionID int                  `gorm:"type:tinyint;not null"`
 	CreatedAt         time.Time            `gorm:"type:datetime;not null"`
+	DeletedAt         gorm.DeletedAt       `gorm:"type:DATETIME NULL;default:NULL"`
 	GroupType         GroupTypeTable       `gorm:"foreignKey:GroupTypeID"`
 	Administrators    []AdministratorTable `gorm:"foreignKey:GroupID"`
+	MainResource      ResourceTable        `gorm:"foreignKey:MainResourceID"`
+	ReadPermission    ReadPermissionTable  `gorm:"foreignKey:ReadPermissionID"`
+	WritePermission   WritePermissionTable `gorm:"foreignKey:WritePermissionID"`
+	Resources         []ResourceTable      `gorm:"many2many:group_resources;foreignKey:ID;joinForeignKey:ID"`
 }
 
 func (gt *GroupTable) TableName() string {

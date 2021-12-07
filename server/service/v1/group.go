@@ -242,7 +242,7 @@ func (g *Group) EditGroup(
 		}
 
 		err = g.groupRepository.EditGroup(ctx, groupInfo.Group, mainResource)
-		if err != nil {
+		if err != nil && !errors.Is(err, repository.ErrNoRecordUpdated) {
 			return fmt.Errorf("failed to save group: %w", err)
 		}
 

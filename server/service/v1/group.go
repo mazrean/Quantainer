@@ -435,3 +435,61 @@ func (g *Group) AddResource(ctx context.Context, session *domain.OIDCSession, id
 
 	return resources, nil
 }
+
+func (g *Group) GetGroup(ctx context.Context, session *domain.OIDCSession, groupID values.GroupID) (*service.GroupDetail, error) {
+	user, err := g.userUtils.getMe(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	users, err := g.userUtils.getAllActiveUser(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+	userMap := make(map[values.TraPMemberID]*service.UserInfo)
+	for _, user := range users {
+		userMap[user.GetID()] = user
+	}
+
+	groupInfo, err := g.groupRepository.GetGroup(ctx, groupID, repository.LockTypeRecord)
+	if errors.Is(err, repository.ErrRecordNotFound) {
+		return nil, service.ErrNoGroup
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group: %w", err)
+	}
+
+	administratorIDs, err := g.administratorRepository.GetAdministrators(ctx, groupInfo.GetID())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get administrators: %w", err)
+	}
+
+	if groupInfo.Group.GetReadPermission() != values.GroupReadPermissionPublic {
+		for i, administrator := range administratorIDs {
+			if administrator == user.GetID() {
+				break
+			}
+
+			if i == len(administratorIDs)-1 {
+				return nil, service.ErrForbidden
+			}
+		}
+	}
+
+	administrators := make([]*service.UserInfo, 0, len(administratorIDs))
+	for _, administrator := range administratorIDs {
+		administrators = append(administrators, userMap[administrator])
+	}
+
+	mainResource := &service.ResourceInfo{
+		Resource: groupInfo.MainResource.Resource,
+		File:     groupInfo.MainResource.File,
+		Creator:  userMap[groupInfo.MainResource.Creator],
+	}
+
+	return &service.GroupDetail{
+		Group:        groupInfo.Group,
+		Administers:  administrators,
+		MainResource: mainResource,
+	}, nil
+}

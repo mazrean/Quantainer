@@ -315,3 +315,31 @@ func (g *Group) DeleteGroup(ctx context.Context, group *domain.Group) error {
 
 	return nil
 }
+
+func (g *Group) AddResources(ctx context.Context, group *domain.Group, resources []values.ResourceID) error {
+	db, err := g.db.getDB(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get db: %w", err)
+	}
+
+	groupTable := GroupTable{
+		ID: uuid.UUID(group.GetID()),
+	}
+
+	resourceTables := make([]*ResourceTable, 0, len(resources))
+	for _, resource := range resources {
+		resourceTables = append(resourceTables, &ResourceTable{
+			ID: uuid.UUID(resource),
+		})
+	}
+
+	err = db.
+		Model(&groupTable).
+		Association("Resources").
+		Append(resourceTables)
+	if err != nil {
+		return fmt.Errorf("failed to add resources to group: %w", err)
+	}
+
+	return nil
+}

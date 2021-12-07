@@ -429,3 +429,91 @@ components:
           - creator
           - fileID
           - createdAt
+    GroupType:
+      description: グループの種類
+      type: string
+      enum:
+        - artBook
+        - other
+    ReadPermission:
+      description: グループ閲覧権限
+      type: string
+      enum:
+        - public
+        - private
+    WritePermission:
+      description: ファイル追加権限
+      type: string
+      enum:
+        - public
+        - private
+    GroupBase:
+      description: グループ系componentのbase
+      type: object
+      properties:
+        name:
+          description: グループ名
+          type: string
+          example: traP Graphic Collection 2021
+        type:
+          $ref: '#/components/schemas/GroupType'
+        description:
+          description: グループの説明
+          type: string
+          example: 2021年のコミケで販売したtraP Graphic Collection
+        readPermission:
+          $ref: '#/components/schemas/ReadPermission'
+        writePermission:
+          $ref: '#/components/schemas/WritePermission'
+      required:
+        - name
+        - type
+        - description
+        - readPermission
+        - writePermission
+    NewGroup:
+      description: グループ
+      allOf:
+        - $ref: '#/components/schemas/GroupBase'
+        - type: object
+          properties:
+            mainResourceID:
+              description: メインのリソース
+              type: string
+              format: uuid
+            resourceIDs:
+              description: グループに含むリソースのID
+              type: array
+              items:
+                type: string
+                format: uuid
+          required:
+            - mainResourceID
+            - resourceIDs
+    GroupDetail:
+      description: グループの詳細情報
+      allOf:
+        - $ref: '#/components/schemas/GroupBase'
+        - type: object
+          properties:
+            mainResourceID:
+              $ref: '#/components/schemas/Resource'
+            administrators:
+              description: グループの管理者
+              type: array
+              items:
+                type: string
+                format: uuid
+          required:
+            - mainResourceID
+            - administrators
+    GroupInfo:
+      description: グループの詳細情報
+      allOf:
+        - $ref: '#/components/schemas/GroupBase'
+        - type: object
+          properties:
+            mainResourceID:
+              $ref: '#/components/schemas/Resource'
+          required:
+            - mainResourceID

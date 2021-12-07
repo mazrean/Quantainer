@@ -493,3 +493,58 @@ func (g *Group) GetGroup(ctx context.Context, session *domain.OIDCSession, group
 		MainResource: mainResource,
 	}, nil
 }
+
+func (g *Group) GetGroups(ctx context.Context, session *domain.OIDCSession, params *service.GroupSearchParams) ([]*service.GroupInfo, error) {
+	user, err := g.userUtils.getMe(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	users, err := g.userUtils.getAllActiveUser(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+	userMap := make(map[values.TraPMemberID]*service.UserInfo)
+	for _, user := range users {
+		userMap[user.GetID()] = user
+	}
+
+	userNameMap := make(map[values.TraPMemberName]*service.UserInfo)
+	for _, user := range users {
+		userNameMap[user.GetName()] = user
+	}
+
+	userList := make([]*service.UserInfo, 0, len(params.Users))
+	for _, userName := range params.Users {
+		user, ok := userNameMap[userName]
+		if !ok {
+			return nil, service.ErrNoUser
+		}
+
+		userList = append(userList, user)
+	}
+
+	groups, err := g.groupRepository.GetGroups(ctx, user, &repository.GroupSearchParams{
+		GroupTypes: params.GroupTypes,
+		Users:      userList,
+		Limit:      params.Limit,
+		Offset:     params.Offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get groups: %w", err)
+	}
+
+	groupList := make([]*service.GroupInfo, 0, len(groups))
+	for _, group := range groups {
+		groupList = append(groupList, &service.GroupInfo{
+			Group: group.Group,
+			MainResource: &service.ResourceInfo{
+				Resource: group.MainResource.Resource,
+				File:     group.MainResource.File,
+				Creator:  userMap[group.MainResource.Creator],
+			},
+		})
+	}
+
+	return groupList, nil
+}

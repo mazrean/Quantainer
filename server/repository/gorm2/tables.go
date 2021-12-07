@@ -11,6 +11,12 @@ var (
 		&FileTable{},
 		&FileTypeTable{},
 		&ResourceTable{},
+		&ResourceTypeTable{},
+		&GroupTable{},
+		&GroupTypeTable{},
+		&ReadPermissionTable{},
+		&WritePermissionTable{},
+		&AdministratorTable{},
 	}
 )
 
@@ -59,4 +65,59 @@ type ResourceTypeTable struct {
 
 func (rtt *ResourceTypeTable) TableName() string {
 	return "resource_types"
+}
+
+type GroupTable struct {
+	ID                uuid.UUID            `gorm:"type:varchar(36);not null;primaryKey"`
+	Name              string               `gorm:"type:varchar(64);size:64;not null"`
+	GroupTypeID       int                  `gorm:"type:tinyint;not null"`
+	Description       string               `gorm:"type:varchar(400);size:400;not null"`
+	ReadPermissionID  int                  `gorm:"type:tinyint;not null"`
+	WritePermissionID int                  `gorm:"type:tinyint;not null"`
+	CreatedAt         time.Time            `gorm:"type:datetime;not null"`
+	GroupType         GroupTypeTable       `gorm:"foreignKey:GroupTypeID"`
+	Administrators    []AdministratorTable `gorm:"foreignKey:GroupID"`
+}
+
+func (gt *GroupTable) TableName() string {
+	return "groups"
+}
+
+type GroupTypeTable struct {
+	ID     int    `gorm:"type:TINYINT AUTO_INCREMENT;not null;primaryKey"`
+	Name   string `gorm:"type:varchar(32);size:32;not null;unique"`
+	Active bool   `gorm:"type:boolean;default:true"`
+}
+
+func (gtt *GroupTypeTable) TableName() string {
+	return "group_types"
+}
+
+type ReadPermissionTable struct {
+	ID     int    `gorm:"type:TINYINT AUTO_INCREMENT;not null;primaryKey"`
+	Name   string `gorm:"type:varchar(32);size:32;not null;unique"`
+	Active bool   `gorm:"type:boolean;default:true"`
+}
+
+func (rpt *ReadPermissionTable) TableName() string {
+	return "read_permissions"
+}
+
+type WritePermissionTable struct {
+	ID     int    `gorm:"type:TINYINT AUTO_INCREMENT;not null;primaryKey"`
+	Name   string `gorm:"type:varchar(32);size:32;not null;unique"`
+	Active bool   `gorm:"type:boolean;default:true"`
+}
+
+func (wpt *WritePermissionTable) TableName() string {
+	return "write_permissions"
+}
+
+type AdministratorTable struct {
+	GroupID uuid.UUID `gorm:"type:varchar(36);not null;primaryKey"`
+	UserID  uuid.UUID `gorm:"type:varchar(36);not null;primaryKey"`
+}
+
+func (at *AdministratorTable) TableName() string {
+	return "administrators"
 }

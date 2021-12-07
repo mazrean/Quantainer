@@ -295,3 +295,47 @@ func (g *Group) EditGroup(
 		MainResource: mainResourceInfo,
 	}, nil
 }
+
+func (g *Group) DeleteGroup(ctx context.Context, session *domain.OIDCSession, id values.GroupID) error {
+	user, err := g.userUtils.getMe(ctx, session)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	err = g.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
+		groupInfo, err := g.groupRepository.GetGroup(ctx, id, repository.LockTypeRecord)
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			return service.ErrNoGroup
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get group: %w", err)
+		}
+
+		administratorIDs, err := g.administratorRepository.GetAdministrators(ctx, groupInfo.GetID())
+		if err != nil {
+			return fmt.Errorf("failed to get administrators: %w", err)
+		}
+
+		for i, administrator := range administratorIDs {
+			if administrator == user.GetID() {
+				break
+			}
+
+			if i == len(administratorIDs)-1 {
+				return service.ErrForbidden
+			}
+		}
+
+		err = g.groupRepository.DeleteGroup(ctx, groupInfo.Group)
+		if err != nil {
+			return fmt.Errorf("failed to delete group: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed in transaction: %w", err)
+	}
+
+	return nil
+}

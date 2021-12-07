@@ -307,3 +307,48 @@ func (r *Resource) GetResources(ctx context.Context, params *repository.Resource
 
 	return resources, nil
 }
+
+func (r *Resource) GetResourcesByIDs(ctx context.Context, resourceIDs []values.ResourceID, lockType repository.LockType) ([]*domain.Resource, error) {
+	db, err := r.db.getDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get db: %w", err)
+	}
+
+	uuidResourceIDs := make([]uuid.UUID, 0, len(resourceIDs))
+	for _, resourceID := range resourceIDs {
+		uuidResourceIDs = append(uuidResourceIDs, uuid.UUID(resourceID))
+	}
+
+	var resourceTables []ResourceTable
+	err = db.
+		Session(&gorm.Session{}).
+		Joins("ResourceType").
+		Where("id IN (?)", uuidResourceIDs).
+		Find(&resourceTables).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	resources := make([]*domain.Resource, 0, len(resourceTables))
+	for _, resourceTable := range resourceTables {
+		var resourceType values.ResourceType
+		switch resourceTable.ResourceType.Name {
+		case resourceTypeImage:
+			resourceType = values.ResourceTypeImage
+		case resourceTypeOther:
+			resourceType = values.ResourceTypeOther
+		default:
+			return nil, fmt.Errorf("invalid resource type: %s", resourceTable.ResourceType.Name)
+		}
+
+		resources = append(resources, domain.NewResource(
+			values.NewResourceIDFromUUID(resourceTable.ID),
+			values.NewResourceName(resourceTable.Name),
+			resourceType,
+			values.NewResourceComment(resourceTable.Comment),
+			resourceTable.CreatedAt,
+		))
+	}
+
+	return resources, nil
+}

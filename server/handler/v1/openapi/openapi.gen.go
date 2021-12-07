@@ -38,11 +38,32 @@ const (
 	FileTypeWebp FileType = "webp"
 )
 
+// Defines values for GroupType.
+const (
+	GroupTypeArtBook GroupType = "artBook"
+
+	GroupTypeOther GroupType = "other"
+)
+
+// Defines values for ReadPermission.
+const (
+	ReadPermissionPrivate ReadPermission = "private"
+
+	ReadPermissionPublic ReadPermission = "public"
+)
+
 // Defines values for ResourceType.
 const (
 	ResourceTypeImage ResourceType = "image"
 
 	ResourceTypeOther ResourceType = "other"
+)
+
+// Defines values for WritePermission.
+const (
+	WritePermissionPrivate WritePermission = "private"
+
+	WritePermissionPublic WritePermission = "public"
 )
 
 // ファイル
@@ -63,9 +84,63 @@ type File struct {
 // ファイルの種類
 type FileType string
 
+// グループ系componentのbase
+type GroupBase struct {
+	// グループの説明
+	Description string `json:"description"`
+
+	// グループ名
+	Name string `json:"name"`
+
+	// グループ閲覧権限
+	ReadPermission ReadPermission `json:"readPermission"`
+
+	// グループの種類
+	Type GroupType `json:"type"`
+
+	// ファイル追加権限
+	WritePermission WritePermission `json:"writePermission"`
+}
+
+// GroupDetail defines model for GroupDetail.
+type GroupDetail struct {
+	// Embedded struct due to allOf(#/components/schemas/GroupBase)
+	GroupBase `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+	// グループの管理者
+	Administrators []string `json:"administrators"`
+
+	// リソース
+	MainResourceID Resource `json:"mainResourceID"`
+}
+
+// GroupInfo defines model for GroupInfo.
+type GroupInfo struct {
+	// Embedded struct due to allOf(#/components/schemas/GroupBase)
+	GroupBase `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+	// リソース
+	MainResourceID Resource `json:"mainResourceID"`
+}
+
+// グループの種類
+type GroupType string
+
 // 新規ファイル
 type NewFile struct {
 	File string `json:"file"`
+}
+
+// NewGroup defines model for NewGroup.
+type NewGroup struct {
+	// Embedded struct due to allOf(#/components/schemas/GroupBase)
+	GroupBase `yaml:",inline"`
+	// Embedded fields due to inline allOf schema
+	// メインのリソース
+	MainResourceID string `json:"mainResourceID"`
+
+	// グループに含むリソースのID
+	ResourceIDs []string `json:"resourceIDs"`
 }
 
 // 新規リソース
@@ -79,6 +154,9 @@ type NewResource struct {
 	// リソースの種類
 	ResourceType ResourceType `json:"resourceType"`
 }
+
+// グループ閲覧権限
+type ReadPermission string
 
 // Resource defines model for Resource.
 type Resource struct {
@@ -110,11 +188,20 @@ type User struct {
 	Name string `json:"name"`
 }
 
+// ファイル追加権限
+type WritePermission string
+
 // CodeInQuery defines model for codeInQuery.
 type CodeInQuery string
 
 // FileIDInPath defines model for fileIDInPath.
 type FileIDInPath string
+
+// GroupIDInPath defines model for groupIDInPath.
+type GroupIDInPath string
+
+// GroupTypeInQuery defines model for groupTypeInQuery.
+type GroupTypeInQuery []GroupType
 
 // LimitInQuery defines model for limitInQuery.
 type LimitInQuery int
@@ -125,14 +212,35 @@ type OffsetInQuery int
 // ResourceIDInPath defines model for resourceIDInPath.
 type ResourceIDInPath string
 
-// TypeInQuery defines model for typeInQuery.
-type TypeInQuery []ResourceType
+// ResourceTypeInQuery defines model for resourceTypeInQuery.
+type ResourceTypeInQuery []ResourceType
 
 // UserInQuery defines model for userInQuery.
 type UserInQuery []string
 
 // PostResourceJSONBody defines parameters for PostResource.
 type PostResourceJSONBody NewResource
+
+// GetGroupsParams defines parameters for GetGroups.
+type GetGroupsParams struct {
+	// グループの種類
+	Type *GroupTypeInQuery `json:"type,omitempty"`
+
+	// ファイル登録者
+	User *UserInQuery `json:"user,omitempty"`
+
+	// 取得するデータの数
+	Limit *LimitInQuery `json:"limit,omitempty"`
+
+	// 取得するデータのoffset
+	Offset *OffsetInQuery `json:"offset,omitempty"`
+}
+
+// PostGroupJSONBody defines parameters for PostGroup.
+type PostGroupJSONBody NewGroup
+
+// PatchGroupJSONBody defines parameters for PatchGroup.
+type PatchGroupJSONBody NewGroup
 
 // CallbackParams defines parameters for Callback.
 type CallbackParams struct {
@@ -143,7 +251,7 @@ type CallbackParams struct {
 // GetResourcesParams defines parameters for GetResources.
 type GetResourcesParams struct {
 	// リソースの種類
-	Type *TypeInQuery `json:"type,omitempty"`
+	Type *ResourceTypeInQuery `json:"type,omitempty"`
 
 	// ファイル登録者
 	User *UserInQuery `json:"user,omitempty"`
@@ -158,6 +266,12 @@ type GetResourcesParams struct {
 // PostResourceJSONRequestBody defines body for PostResource for application/json ContentType.
 type PostResourceJSONRequestBody PostResourceJSONBody
 
+// PostGroupJSONRequestBody defines body for PostGroup for application/json ContentType.
+type PostGroupJSONRequestBody PostGroupJSONBody
+
+// PatchGroupJSONRequestBody defines body for PatchGroup for application/json ContentType.
+type PatchGroupJSONRequestBody PatchGroupJSONBody
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// ファイルのアップロード
@@ -169,6 +283,24 @@ type ServerInterface interface {
 	// リソースの作成
 	// (POST /files/{fileID}/resources)
 	PostResource(ctx echo.Context, fileID FileIDInPath) error
+	// グループの一覧の取得
+	// (GET /groups)
+	GetGroups(ctx echo.Context, params GetGroupsParams) error
+	// グループの作成
+	// (POST /groups)
+	PostGroup(ctx echo.Context) error
+	// グループの削除
+	// (DELETE /groups/{groupID})
+	DeleteGroup(ctx echo.Context, groupID GroupIDInPath) error
+	// グループの情報の取得
+	// (GET /groups/{groupID})
+	GetGroup(ctx echo.Context, groupID GroupIDInPath) error
+	// グループの情報の編集
+	// (PATCH /groups/{groupID})
+	PatchGroup(ctx echo.Context, groupID GroupIDInPath) error
+	// グループの作成
+	// (POST /groups/{groupID}/resources/{resourceID})
+	PostResourceToGroup(ctx echo.Context, groupID GroupIDInPath, resourceID ResourceIDInPath) error
 	// OAuthのコールバック
 	// (GET /oauth2/callback)
 	Callback(ctx echo.Context, params CallbackParams) error
@@ -241,6 +373,138 @@ func (w *ServerInterfaceWrapper) PostResource(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.PostResource(ctx, fileID)
+	return err
+}
+
+// GetGroups converts echo context to params.
+func (w *ServerInterfaceWrapper) GetGroups(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetGroupsParams
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", ctx.QueryParams(), &params.Type)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter type: %s", err))
+	}
+
+	// ------------- Optional query parameter "user" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "user", ctx.QueryParams(), &params.User)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user: %s", err))
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter limit: %s", err))
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", ctx.QueryParams(), &params.Offset)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetGroups(ctx, params)
+	return err
+}
+
+// PostGroup converts echo context to params.
+func (w *ServerInterfaceWrapper) PostGroup(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.PostGroup(ctx)
+	return err
+}
+
+// DeleteGroup converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteGroup(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "groupID" -------------
+	var groupID GroupIDInPath
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "groupID", runtime.ParamLocationPath, ctx.Param("groupID"), &groupID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter groupID: %s", err))
+	}
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.DeleteGroup(ctx, groupID)
+	return err
+}
+
+// GetGroup converts echo context to params.
+func (w *ServerInterfaceWrapper) GetGroup(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "groupID" -------------
+	var groupID GroupIDInPath
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "groupID", runtime.ParamLocationPath, ctx.Param("groupID"), &groupID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter groupID: %s", err))
+	}
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetGroup(ctx, groupID)
+	return err
+}
+
+// PatchGroup converts echo context to params.
+func (w *ServerInterfaceWrapper) PatchGroup(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "groupID" -------------
+	var groupID GroupIDInPath
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "groupID", runtime.ParamLocationPath, ctx.Param("groupID"), &groupID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter groupID: %s", err))
+	}
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.PatchGroup(ctx, groupID)
+	return err
+}
+
+// PostResourceToGroup converts echo context to params.
+func (w *ServerInterfaceWrapper) PostResourceToGroup(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "groupID" -------------
+	var groupID GroupIDInPath
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "groupID", runtime.ParamLocationPath, ctx.Param("groupID"), &groupID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter groupID: %s", err))
+	}
+
+	// ------------- Path parameter "resourceID" -------------
+	var resourceID ResourceIDInPath
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "resourceID", runtime.ParamLocationPath, ctx.Param("resourceID"), &resourceID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter resourceID: %s", err))
+	}
+
+	ctx.Set(TraPMemberAuthScopes, []string{""})
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.PostResourceToGroup(ctx, groupID, resourceID)
 	return err
 }
 
@@ -394,6 +658,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/files", wrapper.PostFile)
 	router.GET(baseURL+"/files/:fileID", wrapper.GetFile)
 	router.POST(baseURL+"/files/:fileID/resources", wrapper.PostResource)
+	router.GET(baseURL+"/groups", wrapper.GetGroups)
+	router.POST(baseURL+"/groups", wrapper.PostGroup)
+	router.DELETE(baseURL+"/groups/:groupID", wrapper.DeleteGroup)
+	router.GET(baseURL+"/groups/:groupID", wrapper.GetGroup)
+	router.PATCH(baseURL+"/groups/:groupID", wrapper.PatchGroup)
+	router.POST(baseURL+"/groups/:groupID/resources/:resourceID", wrapper.PostResourceToGroup)
 	router.GET(baseURL+"/oauth2/callback", wrapper.Callback)
 	router.GET(baseURL+"/oauth2/generate/code", wrapper.GetGeneratedCode)
 	router.POST(baseURL+"/oauth2/logout", wrapper.PostLogout)
@@ -407,37 +677,47 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

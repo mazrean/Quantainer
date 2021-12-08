@@ -1,6 +1,6 @@
 version: "3"
 services:
-  collection-server:
+  quantainer-server:
     build:
       context: ../server/
       dockerfile: ../dev/server.Dockerfile

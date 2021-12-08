@@ -31,12 +31,6 @@ func NewGroup(
 }
 
 func (g *Group) PostGroup(c echo.Context) error {
-	var apiGroup Openapi.NewGroup
-	err := c.Bind(&apiGroup)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
-	}
-
 	session, err := getSession(c)
 	if err != nil {
 		log.Printf("error: failed to get session: %v\n", err)
@@ -47,6 +41,12 @@ func (g *Group) PostGroup(c echo.Context) error {
 	if err != nil {
 		log.Printf("error: failed to get auth session: %v\n", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get auth session")
+	}
+
+	var apiGroup Openapi.NewGroup
+	err = c.Bind(&apiGroup)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 
 	var groupType values.GroupType
@@ -104,6 +104,15 @@ func (g *Group) PostGroup(c echo.Context) error {
 		values.NewResourceIDFromUUID(uuidResourceID),
 		resourceIDs,
 	)
+	if errors.Is(err, service.ErrInvalidPermission) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid permission")
+	}
+	if errors.Is(err, service.ErrNoResource) {
+		return echo.NewHTTPError(http.StatusBadRequest, "no resource")
+	}
+	if errors.Is(err, service.ErrNoUser) {
+		return echo.NewHTTPError(http.StatusBadRequest, "no user")
+	}
 	if err != nil {
 		log.Printf("error: failed to create group: %v\n", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create group")

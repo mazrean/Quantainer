@@ -275,3 +275,99 @@ func (g *Group) GetGroups(c echo.Context, params Openapi.GetGroupsParams) error 
 
 	return c.JSON(http.StatusOK, apiGroups)
 }
+
+func (g *Group) GetGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error {
+	session, err := getSession(c)
+	if err != nil {
+		log.Printf("error: failed to get session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	authSession, err := g.session.getAuthSession(session)
+	if err != nil {
+		log.Printf("error: failed to get auth session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get auth session")
+	}
+
+	uuidGroupID, err := uuid.Parse(string(strGroupID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid group id")
+	}
+
+	groupInfo, err := g.groupServer.GetGroup(
+		c.Request().Context(),
+		authSession,
+		values.NewGroupIDFromUUID(uuidGroupID),
+	)
+	if errors.Is(err, service.ErrNoGroup) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid group id")
+	}
+	if errors.Is(err, service.ErrForbidden) {
+		return echo.NewHTTPError(http.StatusForbidden, "forbidden")
+	}
+	if err != nil {
+		log.Printf("error: failed to get group: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get group")
+	}
+
+	var groupType Openapi.GroupType
+	switch groupInfo.Group.GetType() {
+	case values.GroupTypeArtBook:
+		groupType = Openapi.GroupTypeArtBook
+	case values.GroupTypeOther:
+		groupType = Openapi.GroupTypeOther
+	default:
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid group type")
+	}
+
+	var readPermission Openapi.ReadPermission
+	switch groupInfo.Group.GetReadPermission() {
+	case values.GroupReadPermissionPublic:
+		readPermission = Openapi.ReadPermissionPublic
+	case values.GroupReadPermissionPrivate:
+		readPermission = Openapi.ReadPermissionPrivate
+	default:
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid group read permission")
+	}
+
+	var writePermission Openapi.WritePermission
+	switch groupInfo.Group.GetWritePermission() {
+	case values.GroupWritePermissionPublic:
+		writePermission = Openapi.WritePermissionPublic
+	case values.GroupWritePermissionPrivate:
+		writePermission = Openapi.WritePermissionPrivate
+	default:
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid group write permission")
+	}
+
+	var resourceType Openapi.ResourceType
+	switch groupInfo.MainResource.Resource.GetType() {
+	case values.ResourceTypeImage:
+		resourceType = Openapi.ResourceTypeImage
+	case values.ResourceTypeOther:
+		resourceType = Openapi.ResourceTypeOther
+	default:
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid resource type")
+	}
+
+	return c.JSON(http.StatusOK, Openapi.GroupInfo{
+		GroupBase: Openapi.GroupBase{
+			Name:            string(groupInfo.Group.GetName()),
+			Description:     string(groupInfo.Group.GetDescription()),
+			Type:            groupType,
+			ReadPermission:  readPermission,
+			WritePermission: writePermission,
+		},
+		MainResource: Openapi.Resource{
+			Id:        uuid.UUID(groupInfo.MainResource.Resource.GetID()).String(),
+			FileID:    uuid.UUID(groupInfo.MainResource.File.GetID()).String(),
+			Creator:   string(groupInfo.MainResource.Creator.GetName()),
+			CreatedAt: groupInfo.GetCreatedAt(),
+			NewResource: Openapi.NewResource{
+				Name:         string(groupInfo.MainResource.GetName()),
+				Comment:      string(groupInfo.MainResource.GetComment()),
+				ResourceType: resourceType,
+			},
+		},
+	})
+}

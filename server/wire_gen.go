@@ -93,12 +93,12 @@ func InjectAPI(config *Config) (*v1.API, error) {
 	if err != nil {
 		return nil, err
 	}
-	v1Resource := v1_2.NewResource(db, file, resource, userUtils)
-	resource2 := v1.NewResource(session, checker, v1Resource)
 	group, err := gorm2.NewGroup(db)
 	if err != nil {
 		return nil, err
 	}
+	v1Resource := v1_2.NewResource(db, file, resource, group, userUtils)
+	resource2 := v1.NewResource(session, checker, v1Resource)
 	administrator := gorm2.NewAdministrator(db)
 	v1Group := v1_2.NewGroup(db, resource, group, administrator, userUtils)
 	group2 := v1.NewGroup(session, checker, v1Group)

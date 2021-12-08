@@ -219,18 +219,33 @@ func (r *Resource) GetResources(c echo.Context, params Openapi.GetResourcesParam
 		users = nil
 	}
 
+	var group *values.GroupID
+	if params.Group != nil {
+		uuidGroupID, err := uuid.Parse(string(*params.Group))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "invalid group id")
+		}
+
+		groupID := values.NewGroupIDFromUUID(uuidGroupID)
+		group = &groupID
+	}
+
 	resourceInfos, err := r.resourceService.GetResources(
 		c.Request().Context(),
 		authSession,
 		&service.ResourceSearchParams{
 			ResourceTypes: resourceTypes,
 			Users:         users,
+			Group:         group,
 			Limit:         limit,
 			Offset:        offset,
 		},
 	)
 	if errors.Is(err, service.ErrNoUser) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid user")
+	}
+	if errors.Is(err, service.ErrNoGroup) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid group")
 	}
 	if err != nil {
 		log.Printf("error: failed to get resources: %v\n", err)

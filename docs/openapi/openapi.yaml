@@ -236,6 +236,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/resourceTypeInQuery'
         - $ref: '#/components/parameters/userInQuery'
+        - $ref: '#/components/parameters/groupInQuery'
         - $ref: '#/components/parameters/limitInQuery'
         - $ref: '#/components/parameters/offsetInQuery'
       responses:
@@ -460,6 +461,15 @@ components:
           description: traQID（UUIDでない方）
           type: string
           example: mazrean
+    groupInQuery:
+      name: group
+      in: query
+      required: false
+      description: グループ
+      schema:
+        description: グループID
+        type: string
+        format: uuid
     limitInQuery:
       name: limit
       in: query

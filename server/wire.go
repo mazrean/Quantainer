@@ -106,6 +106,8 @@ var (
 	dbBind                 = wire.Bind(new(repository.DB), new(*gorm2.DB))
 	fileRepositoryBind     = wire.Bind(new(repository.File), new(*gorm2.File))
 	resourceRepositoryBind = wire.Bind(new(repository.Resource), new(*gorm2.Resource))
+	groupRepositoryBind    = wire.Bind(new(repository.Group), new(*gorm2.Group))
+	administratorRepositoryBind = wire.Bind(new(repository.Administrator), new(*gorm2.Administrator))
 
 	oidcAuthBind = wire.Bind(new(auth.OIDC), new(*traq.OIDC))
 	userAuthBind = wire.Bind(new(auth.User), new(*traq.User))
@@ -116,6 +118,7 @@ var (
 	userServiceBind     = wire.Bind(new(service.User), new(*v1Service.User))
 	fileServiceBind     = wire.Bind(new(service.File), new(*v1Service.File))
 	resourceServiceBind = wire.Bind(new(service.Resource), new(*v1Service.Resource))
+	groupServiceBind    = wire.Bind(new(service.Group), new(*v1Service.Group))
 
 	fileField = wire.FieldsOf(new(*Storage), "File")
 )
@@ -132,6 +135,8 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		dbBind,
 		fileRepositoryBind,
 		resourceRepositoryBind,
+		groupRepositoryBind,
+		administratorRepositoryBind,
 		oidcAuthBind,
 		userAuthBind,
 		userCacheBind,
@@ -139,9 +144,12 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		userServiceBind,
 		fileServiceBind,
 		resourceServiceBind,
+		groupServiceBind,
 		gorm2.NewDB,
 		gorm2.NewFile,
 		gorm2.NewResource,
+		gorm2.NewGroup,
+		gorm2.NewAdministrator,
 		traq.NewOIDC,
 		traq.NewUser,
 		ristretto.NewUser,
@@ -150,6 +158,7 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		v1Service.NewUserUtils,
 		v1Service.NewFile,
 		v1Service.NewResource,
+		v1Service.NewGroup,
 		v1Handler.NewAPI,
 		v1Handler.NewSession,
 		v1Handler.NewOAuth2,
@@ -157,6 +166,7 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		v1Handler.NewChecker,
 		v1Handler.NewFile,
 		v1Handler.NewResource,
+		v1Handler.NewGroup,
 		injectedStorage,
 	)
 	return nil, nil

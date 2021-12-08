@@ -31,6 +31,11 @@ func NewGroup(
 }
 
 func (g *Group) PostGroup(c echo.Context) error {
+	err := g.checker.check(c)
+	if err != nil {
+		return err
+	}
+
 	session, err := getSession(c)
 	if err != nil {
 		log.Printf("error: failed to get session: %v\n", err)
@@ -134,6 +139,7 @@ func (g *Group) PostGroup(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, &Openapi.GroupDetail{
+		Id:             uuid.UUID(groupDetail.Group.GetID()).String(),
 		GroupBase:      apiGroup.GroupBase,
 		Administrators: administrators,
 		MainResource: Openapi.Resource{
@@ -151,6 +157,11 @@ func (g *Group) PostGroup(c echo.Context) error {
 }
 
 func (g *Group) GetGroups(c echo.Context, params Openapi.GetGroupsParams) error {
+	err := g.checker.check(c)
+	if err != nil {
+		return err
+	}
+
 	session, err := getSession(c)
 	if err != nil {
 		log.Printf("error: failed to get session: %v\n", err)
@@ -261,6 +272,7 @@ func (g *Group) GetGroups(c echo.Context, params Openapi.GetGroupsParams) error 
 		}
 
 		apiGroups = append(apiGroups, Openapi.GroupInfo{
+			Id: uuid.UUID(groupInfo.Group.GetID()).String(),
 			GroupBase: Openapi.GroupBase{
 				Name:            string(groupInfo.Group.GetName()),
 				Description:     string(groupInfo.Group.GetDescription()),
@@ -286,6 +298,11 @@ func (g *Group) GetGroups(c echo.Context, params Openapi.GetGroupsParams) error 
 }
 
 func (g *Group) GetGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error {
+	err := g.checker.check(c)
+	if err != nil {
+		return err
+	}
+
 	session, err := getSession(c)
 	if err != nil {
 		log.Printf("error: failed to get session: %v\n", err)
@@ -303,13 +320,13 @@ func (g *Group) GetGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid group id")
 	}
 
-	groupInfo, err := g.groupServer.GetGroup(
+	groupDetail, err := g.groupServer.GetGroup(
 		c.Request().Context(),
 		authSession,
 		values.NewGroupIDFromUUID(uuidGroupID),
 	)
 	if errors.Is(err, service.ErrNoGroup) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid group id")
+		return echo.NewHTTPError(http.StatusNotFound, "group not found")
 	}
 	if errors.Is(err, service.ErrForbidden) {
 		return echo.NewHTTPError(http.StatusForbidden, "forbidden")
@@ -320,7 +337,7 @@ func (g *Group) GetGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error
 	}
 
 	var groupType Openapi.GroupType
-	switch groupInfo.Group.GetType() {
+	switch groupDetail.Group.GetType() {
 	case values.GroupTypeArtBook:
 		groupType = Openapi.GroupTypeArtBook
 	case values.GroupTypeOther:
@@ -329,28 +346,8 @@ func (g *Group) GetGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error
 		return echo.NewHTTPError(http.StatusInternalServerError, "invalid group type")
 	}
 
-	var readPermission Openapi.ReadPermission
-	switch groupInfo.Group.GetReadPermission() {
-	case values.GroupReadPermissionPublic:
-		readPermission = Openapi.ReadPermissionPublic
-	case values.GroupReadPermissionPrivate:
-		readPermission = Openapi.ReadPermissionPrivate
-	default:
-		return echo.NewHTTPError(http.StatusInternalServerError, "invalid group read permission")
-	}
-
-	var writePermission Openapi.WritePermission
-	switch groupInfo.Group.GetWritePermission() {
-	case values.GroupWritePermissionPublic:
-		writePermission = Openapi.WritePermissionPublic
-	case values.GroupWritePermissionPrivate:
-		writePermission = Openapi.WritePermissionPrivate
-	default:
-		return echo.NewHTTPError(http.StatusInternalServerError, "invalid group write permission")
-	}
-
 	var resourceType Openapi.ResourceType
-	switch groupInfo.MainResource.Resource.GetType() {
+	switch groupDetail.MainResource.Resource.GetType() {
 	case values.ResourceTypeImage:
 		resourceType = Openapi.ResourceTypeImage
 	case values.ResourceTypeOther:
@@ -359,22 +356,27 @@ func (g *Group) GetGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error
 		return echo.NewHTTPError(http.StatusInternalServerError, "invalid resource type")
 	}
 
-	return c.JSON(http.StatusOK, Openapi.GroupInfo{
+	administrators := make([]string, 0, len(groupDetail.Administers))
+	for _, administrator := range groupDetail.Administers {
+		administrators = append(administrators, string(administrator.GetName()))
+	}
+
+	return c.JSON(http.StatusOK, &Openapi.GroupDetail{
+		Id: uuid.UUID(groupDetail.Group.GetID()).String(),
 		GroupBase: Openapi.GroupBase{
-			Name:            string(groupInfo.Group.GetName()),
-			Description:     string(groupInfo.Group.GetDescription()),
-			Type:            groupType,
-			ReadPermission:  readPermission,
-			WritePermission: writePermission,
+			Name:        string(groupDetail.Group.GetName()),
+			Description: string(groupDetail.Group.GetDescription()),
+			Type:        groupType,
 		},
+		Administrators: administrators,
 		MainResource: Openapi.Resource{
-			Id:        uuid.UUID(groupInfo.MainResource.Resource.GetID()).String(),
-			FileID:    uuid.UUID(groupInfo.MainResource.File.GetID()).String(),
-			Creator:   string(groupInfo.MainResource.Creator.GetName()),
-			CreatedAt: groupInfo.GetCreatedAt(),
+			Id:        uuid.UUID(groupDetail.MainResource.Resource.GetID()).String(),
+			FileID:    uuid.UUID(groupDetail.MainResource.File.GetID()).String(),
+			Creator:   string(groupDetail.MainResource.Creator.GetName()),
+			CreatedAt: groupDetail.GetCreatedAt(),
 			NewResource: Openapi.NewResource{
-				Name:         string(groupInfo.MainResource.GetName()),
-				Comment:      string(groupInfo.MainResource.GetComment()),
+				Name:         string(groupDetail.MainResource.GetName()),
+				Comment:      string(groupDetail.MainResource.GetComment()),
 				ResourceType: resourceType,
 			},
 		},
@@ -382,6 +384,11 @@ func (g *Group) GetGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error
 }
 
 func (g *Group) PatchGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error {
+	err := g.checker.check(c)
+	if err != nil {
+		return err
+	}
+
 	session, err := getSession(c)
 	if err != nil {
 		log.Printf("error: failed to get session: %v\n", err)
@@ -497,6 +504,7 @@ func (g *Group) PatchGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) err
 	}
 
 	return c.JSON(http.StatusOK, &Openapi.GroupDetail{
+		Id:             uuid.UUID(groupDetail.Group.GetID()).String(),
 		GroupBase:      apiGroup.GroupBase,
 		Administrators: administrators,
 		MainResource: Openapi.Resource{
@@ -514,6 +522,11 @@ func (g *Group) PatchGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) err
 }
 
 func (g *Group) DeleteGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error {
+	err := g.checker.check(c)
+	if err != nil {
+		return err
+	}
+
 	session, err := getSession(c)
 	if err != nil {
 		log.Printf("error: failed to get session: %v\n", err)
@@ -551,6 +564,11 @@ func (g *Group) DeleteGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) er
 }
 
 func (g *Group) PostResourceToGroup(c echo.Context, strGroupID Openapi.GroupIDInPath, strResourceID Openapi.ResourceIDInPath) error {
+	err := g.checker.check(c)
+	if err != nil {
+		return err
+	}
+
 	session, err := getSession(c)
 	if err != nil {
 		log.Printf("error: failed to get session: %v\n", err)
@@ -591,8 +609,11 @@ func (g *Group) PostResourceToGroup(c echo.Context, strGroupID Openapi.GroupIDIn
 	if errors.Is(err, service.ErrForbidden) {
 		return echo.NewHTTPError(http.StatusForbidden, "forbidden")
 	}
+	if errors.Is(err, service.ErrResourceAlreadyExists) {
+		return echo.NewHTTPError(http.StatusBadRequest, "resource already exists")
+	}
 	if err != nil {
-		log.Printf("error: failed to edit group: %v\n", err)
+		log.Printf("error: failed to add resource to group: %v\n", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to edit group")
 	}
 

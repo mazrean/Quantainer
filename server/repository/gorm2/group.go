@@ -2,6 +2,7 @@ package gorm2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -386,12 +387,16 @@ func (g *Group) GetGroup(ctx context.Context, groupID values.GroupID, lockType r
 
 	var groupTable GroupTable
 	err = db.
+		Session(&gorm.Session{}).
 		Joins("GroupType").
 		Joins("ReadPermission").
 		Joins("WritePermission").
 		Joins("MainResource").
-		Where("id = ?", uuid.UUID(groupID)).
+		Where("groups.id = ?", uuid.UUID(groupID)).
 		Take(&groupTable).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, repository.ErrRecordNotFound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get group: %w", err)
 	}
@@ -428,6 +433,7 @@ func (g *Group) GetGroup(ctx context.Context, groupID values.GroupID, lockType r
 
 	var resourceTypeTable ResourceTypeTable
 	err = db.
+		Session(&gorm.Session{}).
 		Where("id = ?", groupTable.MainResource.ResourceTypeID).
 		Take(&resourceTypeTable).Error
 	if err != nil {
@@ -437,7 +443,7 @@ func (g *Group) GetGroup(ctx context.Context, groupID values.GroupID, lockType r
 	var resourceFileTable FileTable
 	err = db.
 		Joins("FileType").
-		Where("id = ?", groupTable.MainResource.FileID).
+		Where("files.id = ?", groupTable.MainResource.FileID).
 		Take(&resourceFileTable).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get main resource file: %w", err)

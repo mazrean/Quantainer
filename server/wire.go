@@ -103,10 +103,10 @@ func injectLocalStorage(config *Config) (*Storage, error) {
 }
 
 var (
-	dbBind                 = wire.Bind(new(repository.DB), new(*gorm2.DB))
-	fileRepositoryBind     = wire.Bind(new(repository.File), new(*gorm2.File))
-	resourceRepositoryBind = wire.Bind(new(repository.Resource), new(*gorm2.Resource))
-	groupRepositoryBind    = wire.Bind(new(repository.Group), new(*gorm2.Group))
+	dbBind                      = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	fileRepositoryBind          = wire.Bind(new(repository.File), new(*gorm2.File))
+	resourceRepositoryBind      = wire.Bind(new(repository.Resource), new(*gorm2.Resource))
+	groupRepositoryBind         = wire.Bind(new(repository.Group), new(*gorm2.Group))
 	administratorRepositoryBind = wire.Bind(new(repository.Administrator), new(*gorm2.Administrator))
 
 	oidcAuthBind = wire.Bind(new(auth.OIDC), new(*traq.OIDC))

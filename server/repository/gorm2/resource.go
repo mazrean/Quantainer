@@ -223,6 +223,16 @@ func (r *Resource) GetResources(ctx context.Context, params *repository.Resource
 		query = query.Where("File.creator_id IN ?", creatorIDs)
 	}
 
+	if len(params.Groups) != 0 {
+		groupIDs := make([]uuid.UUID, 0, len(params.Groups))
+		for _, groupInfo := range params.Groups {
+			groupIDs = append(groupIDs, uuid.UUID(groupInfo.GetID()))
+		}
+		query = query.
+			Joins("JOIN group_resources ON resources.id = group_resources.resource_table_id").
+			Where("group_resources.id IN ?", groupIDs)
+	}
+
 	if params.Limit != -1 {
 		query = query.Limit(params.Limit)
 	}
@@ -323,7 +333,7 @@ func (r *Resource) GetResourcesByIDs(ctx context.Context, resourceIDs []values.R
 	err = db.
 		Session(&gorm.Session{}).
 		Joins("ResourceType").
-		Where("id IN (?)", uuidResourceIDs).
+		Where("resources.id IN (?)", uuidResourceIDs).
 		Find(&resourceTables).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get resources: %w", err)

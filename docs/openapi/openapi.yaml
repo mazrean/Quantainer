@@ -657,6 +657,10 @@ components:
           properties:
             mainResource:
               $ref: '#/components/schemas/Resource'
+            id:
+              description: グループのid
+              type: string
+              format: uuid
             administrators:
               description: グループの管理者
               type: array
@@ -664,6 +668,7 @@ components:
                 type: string
                 format: uuid
           required:
+            - id
             - mainResource
             - administrators
     GroupInfo:
@@ -672,7 +677,12 @@ components:
         - $ref: '#/components/schemas/GroupBase'
         - type: object
           properties:
+            id:
+              description: グループのid
+              type: string
+              format: uuid
             mainResource:
               $ref: '#/components/schemas/Resource'
           required:
+            - id
             - mainResource

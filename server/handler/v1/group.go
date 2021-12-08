@@ -512,3 +512,40 @@ func (g *Group) PatchGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) err
 		},
 	})
 }
+
+func (g *Group) DeleteGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) error {
+	session, err := getSession(c)
+	if err != nil {
+		log.Printf("error: failed to get session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	authSession, err := g.session.getAuthSession(session)
+	if err != nil {
+		log.Printf("error: failed to get auth session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get auth session")
+	}
+
+	uuidGroupID, err := uuid.Parse(string(strGroupID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid group id")
+	}
+
+	err = g.groupServer.DeleteGroup(
+		c.Request().Context(),
+		authSession,
+		values.NewGroupIDFromUUID(uuidGroupID),
+	)
+	if errors.Is(err, service.ErrNoGroup) {
+		return echo.NewHTTPError(http.StatusNotFound, "group not found")
+	}
+	if errors.Is(err, service.ErrForbidden) {
+		return echo.NewHTTPError(http.StatusForbidden, "forbidden")
+	}
+	if err != nil {
+		log.Printf("error: failed to delete group: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete group")
+	}
+
+	return c.NoContent(http.StatusOK)
+}

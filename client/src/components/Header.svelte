@@ -5,8 +5,8 @@
 <div class="container">
   <h1>Quantainer</h1>
   <div class="right">
-    <span uk-icon="icon:plus;ratio:1.5" class="icon"></span>
-    <span class="span"></span>
+    <!--<span uk-icon="icon:plus;ratio:1.3" class="icon"></span>
+    <span class="span"></span>-->
     <img src="https://q.trap.jp/api/v3/public/icon/{userName}" alt="{userName}"/>
   </div>
 </div>

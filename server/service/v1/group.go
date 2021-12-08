@@ -178,6 +178,10 @@ func (g *Group) EditGroup(
 
 		group = groupInfo.Group
 
+		if !group.IsValidPermission() {
+			return service.ErrInvalidPermission
+		}
+
 		administratorIDs, err := g.administratorRepository.GetAdministrators(ctx, groupInfo.GetID())
 		if err != nil {
 			return fmt.Errorf("failed to get administrators: %w", err)

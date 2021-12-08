@@ -13,6 +13,7 @@ tags:
   - name: user
   - name: file
   - name: resource
+  - name: group
 paths:
   /oauth2/callback:
     parameters:
@@ -233,7 +234,7 @@ paths:
       security:
         - traPMemberAuth: []
       parameters:
-        - $ref: '#/components/parameters/typeInQuery'
+        - $ref: '#/components/parameters/resourceTypeInQuery'
         - $ref: '#/components/parameters/userInQuery'
         - $ref: '#/components/parameters/limitInQuery'
         - $ref: '#/components/parameters/offsetInQuery'
@@ -246,6 +247,147 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Resource'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /groups:
+    post:
+      tags:
+        - group
+      summary: グループの作成
+      description: グループの作成
+      operationId: postGroup
+      security:
+        - traPMemberAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewGroup'
+      responses:
+        "201":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetail'
+        "400":
+          description: リクエストの形式が誤っている
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+    get:
+      tags:
+        - group
+      summary: グループの一覧の取得
+      description: グループの一覧の取得
+      operationId: getGroups
+      security:
+        - traPMemberAuth: []
+      parameters:
+        - $ref: '#/components/parameters/groupTypeInQuery'
+        - $ref: '#/components/parameters/userInQuery'
+        - $ref: '#/components/parameters/limitInQuery'
+        - $ref: '#/components/parameters/offsetInQuery'
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupInfo'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /groups/{groupID}:
+    parameters:
+      - $ref: '#/components/parameters/groupIDInPath'
+    get:
+      tags:
+        - group
+      summary: グループの情報の取得
+      description: グループの情報の取得
+      operationId: getGroup
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetail'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+    patch:
+      tags:
+        - group
+      summary: グループの情報の編集
+      description: グループの情報の編集
+      operationId: patchGroup
+      security:
+        - traPMemberAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewGroup'
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetail'
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+    delete:
+      tags:
+        - group
+      summary: グループの削除
+      description: グループの削除
+      operationId: deleteGroup
+      security:
+        - traPMemberAuth: []
+      responses:
+        "200":
+          description: 成功
+        "401":
+          description: ログインしていない
+        "500":
+          description: 予期しないエラー
+  /groups/{groupID}/resources/{resourceID}:
+    parameters:
+      - $ref: '#/components/parameters/groupIDInPath'
+      - $ref: '#/components/parameters/resourceIDInPath'
+    post:
+      tags:
+        - group
+      summary: グループの作成
+      description: グループの作成
+      operationId: postResourceToGroup
+      security:
+        - traPMemberAuth: []
+      responses:
+        "201":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resource'
+        "400":
+          description: リクエストの形式が誤っている
         "401":
           description: ログインしていない
         "500":
@@ -281,7 +423,15 @@ components:
       schema:
         type: string
         format: uuid
-    typeInQuery:
+    groupIDInPath:
+      name: groupID
+      in: path
+      required: true
+      description: グループid
+      schema:
+        type: string
+        format: uuid
+    resourceTypeInQuery:
       name: type
       in: query
       required: false
@@ -290,6 +440,15 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/ResourceType'
+    groupTypeInQuery:
+      name: type
+      in: query
+      required: false
+      description: グループの種類
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/GroupType'
     userInQuery:
       name: user
       in: query
@@ -429,3 +588,101 @@ components:
           - creator
           - fileID
           - createdAt
+    GroupType:
+      description: グループの種類
+      type: string
+      enum:
+        - artBook
+        - other
+    ReadPermission:
+      description: グループ閲覧権限
+      type: string
+      enum:
+        - public
+        - private
+    WritePermission:
+      description: ファイル追加権限
+      type: string
+      enum:
+        - public
+        - private
+    GroupBase:
+      description: グループ系componentのbase
+      type: object
+      properties:
+        name:
+          description: グループ名
+          type: string
+          example: traP Graphic Collection 2021
+        type:
+          $ref: '#/components/schemas/GroupType'
+        description:
+          description: グループの説明
+          type: string
+          example: 2021年のコミケで販売したtraP Graphic Collection
+        readPermission:
+          $ref: '#/components/schemas/ReadPermission'
+        writePermission:
+          $ref: '#/components/schemas/WritePermission'
+      required:
+        - name
+        - type
+        - description
+        - readPermission
+        - writePermission
+    NewGroup:
+      description: グループ
+      allOf:
+        - $ref: '#/components/schemas/GroupBase'
+        - type: object
+          properties:
+            mainResourceID:
+              description: メインのリソース
+              type: string
+              format: uuid
+            resourceIDs:
+              description: グループに含むリソースのID
+              type: array
+              items:
+                type: string
+                format: uuid
+          required:
+            - mainResourceID
+            - resourceIDs
+    GroupDetail:
+      description: グループの詳細情報
+      allOf:
+        - $ref: '#/components/schemas/GroupBase'
+        - type: object
+          properties:
+            mainResource:
+              $ref: '#/components/schemas/Resource'
+            id:
+              description: グループのid
+              type: string
+              format: uuid
+            administrators:
+              description: グループの管理者
+              type: array
+              items:
+                type: string
+                format: uuid
+          required:
+            - id
+            - mainResource
+            - administrators
+    GroupInfo:
+      description: グループの詳細情報
+      allOf:
+        - $ref: '#/components/schemas/GroupBase'
+        - type: object
+          properties:
+            id:
+              description: グループのid
+              type: string
+              format: uuid
+            mainResource:
+              $ref: '#/components/schemas/Resource'
+          required:
+            - id
+            - mainResource

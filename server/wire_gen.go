@@ -95,7 +95,14 @@ func InjectAPI(config *Config) (*v1.API, error) {
 	}
 	v1Resource := v1_2.NewResource(db, file, resource, userUtils)
 	resource2 := v1.NewResource(session, checker, v1Resource)
-	api := v1.NewAPI(user2, oAuth2, session, file2, resource2)
+	group, err := gorm2.NewGroup(db)
+	if err != nil {
+		return nil, err
+	}
+	administrator := gorm2.NewAdministrator(db)
+	v1Group := v1_2.NewGroup(db, resource, group, administrator, userUtils)
+	group2 := v1.NewGroup(session, checker, v1Group)
+	api := v1.NewAPI(user2, oAuth2, session, file2, resource2, group2)
 	return api, nil
 }
 
@@ -152,9 +159,11 @@ func injectedStorage(config *Config) (*Storage, error) {
 }
 
 var (
-	dbBind                 = wire.Bind(new(repository.DB), new(*gorm2.DB))
-	fileRepositoryBind     = wire.Bind(new(repository.File), new(*gorm2.File))
-	resourceRepositoryBind = wire.Bind(new(repository.Resource), new(*gorm2.Resource))
+	dbBind                      = wire.Bind(new(repository.DB), new(*gorm2.DB))
+	fileRepositoryBind          = wire.Bind(new(repository.File), new(*gorm2.File))
+	resourceRepositoryBind      = wire.Bind(new(repository.Resource), new(*gorm2.Resource))
+	groupRepositoryBind         = wire.Bind(new(repository.Group), new(*gorm2.Group))
+	administratorRepositoryBind = wire.Bind(new(repository.Administrator), new(*gorm2.Administrator))
 
 	oidcAuthBind = wire.Bind(new(auth.OIDC), new(*traq.OIDC))
 	userAuthBind = wire.Bind(new(auth.User), new(*traq.User))
@@ -165,6 +174,7 @@ var (
 	userServiceBind     = wire.Bind(new(service.User), new(*v1_2.User))
 	fileServiceBind     = wire.Bind(new(service.File), new(*v1_2.File))
 	resourceServiceBind = wire.Bind(new(service.Resource), new(*v1_2.Resource))
+	groupServiceBind    = wire.Bind(new(service.Group), new(*v1_2.Group))
 
 	fileField = wire.FieldsOf(new(*Storage), "File")
 )

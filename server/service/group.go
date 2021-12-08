@@ -18,7 +18,7 @@ type Group interface {
 		writePermission values.GroupWritePermission,
 		mainResource values.ResourceID,
 		resources []values.ResourceID,
-	) (*domain.Group, *ResourceInfo, error)
+	) (*GroupDetail, error)
 	EditGroup(
 		ctx context.Context,
 		session *domain.OIDCSession,

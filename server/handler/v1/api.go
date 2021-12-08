@@ -12,6 +12,7 @@ type API struct {
 	*Session
 	*File
 	*Resource
+	*Group
 }
 
 func NewAPI(
@@ -20,6 +21,7 @@ func NewAPI(
 	session *Session,
 	file *File,
 	resource *Resource,
+	group *Group,
 ) *API {
 	return &API{
 		User:     user,
@@ -27,6 +29,7 @@ func NewAPI(
 		Session:  session,
 		File:     file,
 		Resource: resource,
+		Group:    group,
 	}
 }
 

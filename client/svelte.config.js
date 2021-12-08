@@ -9,9 +9,19 @@ const config = {
 
 	kit: {
 		adapter: adapter(),
-
 		// hydrate the <div id="svelte"> element in src/app.html
-		target: '#svelte'
+		target: '#svelte',
+		vite: {
+			server: {
+				port: 3000,
+				proxy: {
+					'/api': {
+						target: 'http://localhost:3000',
+						changeOrigin: true,
+					}
+				}
+			}
+		}
 	}
 };
 

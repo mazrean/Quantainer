@@ -1,10 +1,31 @@
 <script type="ts">
   import Header from '../components/Header.svelte';
   import Sidebar from '../components/Sidebar.svelte';
+  import { toast, SvelteToast } from '@zerodevx/svelte-toast'
+  import { user, getMeAction } from '../store/user';
+
+  let userName: string = "";
+  getMeAction().catch(err => {
+    console.log(err);
+    toast.push("ユーザー情報の取得に失敗しました", {
+      theme: {
+        background: '#e43a19',
+        color: '#212121',
+      },
+    });
+  });
+
+  user.subscribe(user => {
+    if (user === null) {
+      return;
+    }
+
+    userName = user.name;
+  });
 </script>
 
 <div class="container">
-  <Header userName="mazrean"></Header>
+  <Header userName={userName}></Header>
   <div class="main">
     <div class="sidebar">
       <Sidebar></Sidebar>

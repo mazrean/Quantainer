@@ -32,16 +32,16 @@
     margin-bottom: 1rem;
     margin: 15px 16px;
   }
-  .span {
-    width: 10px;
-    height: 36px;
-  }
   img {
     width: 36px;
     height: 36px;
     border-radius: 50%;
   }
+  /*.span {
+    width: 10px;
+    height: 36px;
+  }
   .icon {
     color: #f2f4f7;
-  }
+  }*/
 </style>

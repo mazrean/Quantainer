@@ -77,7 +77,9 @@ func (o *OAuth2) Callback(c echo.Context, params Openapi.CallbackParams) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save session")
 	}
 
-	return c.NoContent(http.StatusOK)
+	c.Response().Header().Set("Location", "/")
+
+	return c.NoContent(http.StatusSeeOther)
 }
 
 func (o *OAuth2) GetGeneratedCode(c echo.Context) error {

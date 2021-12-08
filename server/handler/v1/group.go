@@ -549,3 +549,78 @@ func (g *Group) DeleteGroup(c echo.Context, strGroupID Openapi.GroupIDInPath) er
 
 	return c.NoContent(http.StatusOK)
 }
+
+func (g *Group) PostResourceToGroup(c echo.Context, strGroupID Openapi.GroupIDInPath, strResourceID Openapi.ResourceIDInPath) error {
+	session, err := getSession(c)
+	if err != nil {
+		log.Printf("error: failed to get session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	authSession, err := g.session.getAuthSession(session)
+	if err != nil {
+		log.Printf("error: failed to get auth session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get auth session")
+	}
+
+	uuidGroupID, err := uuid.Parse(string(strGroupID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid group id")
+	}
+
+	uuidResourceID, err := uuid.Parse(string(strResourceID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid resource id")
+	}
+
+	resourceInfos, err := g.groupServer.AddResource(
+		c.Request().Context(),
+		authSession,
+		values.NewGroupIDFromUUID(uuidGroupID),
+		values.NewResourceIDFromUUID(uuidResourceID),
+	)
+	if errors.Is(err, service.ErrNoGroup) {
+		return echo.NewHTTPError(http.StatusNotFound, "group not found")
+	}
+	if errors.Is(err, service.ErrNoResource) {
+		return echo.NewHTTPError(http.StatusBadRequest, "no resource")
+	}
+	if errors.Is(err, service.ErrNoUser) {
+		return echo.NewHTTPError(http.StatusBadRequest, "no user")
+	}
+	if errors.Is(err, service.ErrForbidden) {
+		return echo.NewHTTPError(http.StatusForbidden, "forbidden")
+	}
+	if err != nil {
+		log.Printf("error: failed to edit group: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to edit group")
+	}
+
+	resources := make([]Openapi.Resource, 0, len(resourceInfos))
+	for _, resourceInfo := range resourceInfos {
+		var resourceType Openapi.ResourceType
+		switch resourceInfo.Resource.GetType() {
+		case values.ResourceTypeImage:
+			resourceType = Openapi.ResourceTypeImage
+		case values.ResourceTypeOther:
+			resourceType = Openapi.ResourceTypeOther
+		default:
+			log.Printf("error: unknown resource type: %v\n", resourceInfo.Resource.GetType())
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid resource type")
+		}
+
+		resources = append(resources, Openapi.Resource{
+			Id:        uuid.UUID(resourceInfo.Resource.GetID()).String(),
+			Creator:   string(resourceInfo.Creator.GetName()),
+			FileID:    uuid.UUID(resourceInfo.File.GetID()).String(),
+			CreatedAt: resourceInfo.Resource.GetCreatedAt(),
+			NewResource: Openapi.NewResource{
+				Name:         string(resourceInfo.Resource.GetName()),
+				Comment:      string(resourceInfo.Resource.GetComment()),
+				ResourceType: resourceType,
+			},
+		})
+	}
+
+	return c.JSON(http.StatusOK, resources)
+}

@@ -23,6 +23,7 @@ type Resource interface {
 type ResourceSearchParams struct {
 	ResourceTypes []values.ResourceType
 	Users         []values.TraPMemberName
+	Group         *values.GroupID
 	Limit         int
 	Offset        int
 }

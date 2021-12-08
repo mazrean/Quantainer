@@ -16,6 +16,7 @@ type Resource struct {
 	dbRepository       repository.DB
 	fileRepository     repository.File
 	resourceRepository repository.Resource
+	groupRepository    repository.Group
 	userUtils          *UserUtils
 }
 
@@ -23,12 +24,14 @@ func NewResource(
 	dbRepository repository.DB,
 	fileRepository repository.File,
 	resourceRepository repository.Resource,
+	groupRepository repository.Group,
 	userUtils *UserUtils,
 ) *Resource {
 	return &Resource{
 		dbRepository:       dbRepository,
 		fileRepository:     fileRepository,
 		resourceRepository: resourceRepository,
+		groupRepository:    groupRepository,
 		userUtils:          userUtils,
 	}
 }
@@ -147,9 +150,23 @@ func (r *Resource) GetResources(ctx context.Context, session *domain.OIDCSession
 		userList = append(userList, user)
 	}
 
+	var groups []*domain.Group
+	if params.Group != nil {
+		groupInfos, err := r.groupRepository.GetGroup(ctx, *params.Group, repository.LockTypeNone)
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			return nil, service.ErrNoGroup
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to get groups: %w", err)
+		}
+
+		groups = []*domain.Group{groupInfos.Group}
+	}
+
 	resourceInfos, err := r.resourceRepository.GetResources(ctx, &repository.ResourceSearchParams{
 		ResourceTypes: params.ResourceTypes,
 		Users:         userList,
+		Groups:        groups,
 		Limit:         params.Limit,
 		Offset:        params.Offset,
 	})

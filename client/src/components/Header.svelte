@@ -21,7 +21,7 @@
   }
   h1 {
     font-size: 28px;
-    margin: 4px 16px;
+    margin: 15px 16px;
     color: #f2f4f7;
   }
   .right {
@@ -30,7 +30,7 @@
     justify-content: center;
     flex-direction: row;
     margin-bottom: 1rem;
-    margin: 4px 16px;
+    margin: 15px 16px;
   }
   .span {
     width: 10px;

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -138,4 +139,139 @@ func (g *Group) PostGroup(c echo.Context) error {
 			},
 		},
 	})
+}
+
+func (g *Group) GetGroups(c echo.Context, params Openapi.GetGroupsParams) error {
+	session, err := getSession(c)
+	if err != nil {
+		log.Printf("error: failed to get session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	authSession, err := g.session.getAuthSession(session)
+	if err != nil {
+		log.Printf("error: failed to get auth session: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get auth session")
+	}
+
+	var groupTypes []values.GroupType
+	if params.Type != nil {
+		groupTypes = make([]values.GroupType, 0, len(*params.Type))
+		for _, groupType := range *params.Type {
+			switch groupType {
+			case Openapi.GroupTypeArtBook:
+				groupTypes = append(groupTypes, values.GroupTypeArtBook)
+			case Openapi.GroupTypeOther:
+				groupTypes = append(groupTypes, values.GroupTypeOther)
+			default:
+				return echo.NewHTTPError(http.StatusBadRequest, "invalid group type")
+			}
+		}
+	}
+
+	var users []values.TraPMemberName
+	if params.User != nil {
+		users = make([]values.TraPMemberName, 0, len(*params.User))
+		for _, user := range *params.User {
+			users = append(users, values.NewTrapMemberName(user))
+		}
+	}
+
+	var limit int
+	if params.Limit != nil {
+		limit = int(*params.Limit)
+	} else {
+		limit = -1
+	}
+
+	var offset int
+	if params.Offset != nil {
+		offset = int(*params.Offset)
+	} else {
+		offset = 0
+	}
+
+	groupInfos, err := g.groupServer.GetGroups(
+		c.Request().Context(),
+		authSession,
+		&service.GroupSearchParams{
+			GroupTypes: groupTypes,
+			Users:      users,
+			Limit:      limit,
+			Offset:     offset,
+		},
+	)
+	if errors.Is(err, service.ErrNoUser) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid user")
+	}
+	if err != nil {
+		log.Printf("error: failed to get groups: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get groups")
+	}
+
+	apiGroups := make([]Openapi.GroupInfo, 0, len(groupInfos))
+	for _, groupInfo := range groupInfos {
+		var groupType Openapi.GroupType
+		switch groupInfo.Group.GetType() {
+		case values.GroupTypeArtBook:
+			groupType = Openapi.GroupTypeArtBook
+		case values.GroupTypeOther:
+			groupType = Openapi.GroupTypeOther
+		default:
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid group type")
+		}
+
+		var readPermission Openapi.ReadPermission
+		switch groupInfo.Group.GetReadPermission() {
+		case values.GroupReadPermissionPublic:
+			readPermission = Openapi.ReadPermissionPublic
+		case values.GroupReadPermissionPrivate:
+			readPermission = Openapi.ReadPermissionPrivate
+		default:
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid group read permission")
+		}
+
+		var writePermission Openapi.WritePermission
+		switch groupInfo.Group.GetWritePermission() {
+		case values.GroupWritePermissionPublic:
+			writePermission = Openapi.WritePermissionPublic
+		case values.GroupWritePermissionPrivate:
+			writePermission = Openapi.WritePermissionPrivate
+		default:
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid group write permission")
+		}
+
+		var resourceType Openapi.ResourceType
+		switch groupInfo.MainResource.Resource.GetType() {
+		case values.ResourceTypeImage:
+			resourceType = Openapi.ResourceTypeImage
+		case values.ResourceTypeOther:
+			resourceType = Openapi.ResourceTypeOther
+		default:
+			return echo.NewHTTPError(http.StatusInternalServerError, "invalid resource type")
+		}
+
+		apiGroups = append(apiGroups, Openapi.GroupInfo{
+			GroupBase: Openapi.GroupBase{
+				Name:            string(groupInfo.Group.GetName()),
+				Description:     string(groupInfo.Group.GetDescription()),
+				Type:            groupType,
+				ReadPermission:  readPermission,
+				WritePermission: writePermission,
+			},
+			MainResource: Openapi.Resource{
+				Id:        uuid.UUID(groupInfo.MainResource.Resource.GetID()).String(),
+				FileID:    uuid.UUID(groupInfo.MainResource.File.GetID()).String(),
+				Creator:   string(groupInfo.MainResource.Creator.GetName()),
+				CreatedAt: groupInfo.GetCreatedAt(),
+				NewResource: Openapi.NewResource{
+					Name:         string(groupInfo.MainResource.GetName()),
+					Comment:      string(groupInfo.MainResource.GetComment()),
+					ResourceType: resourceType,
+				},
+			},
+		})
+	}
+
+	return c.JSON(http.StatusOK, apiGroups)
 }

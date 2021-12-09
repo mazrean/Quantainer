@@ -16,7 +16,7 @@
   .container {
     background-color: transparent;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     width: 100%;
@@ -24,12 +24,22 @@
   }
   .description {
     background-color: #f2f4f7;
-    height: 100%;
+    height: inherit;
+    width: inherit;
     padding: 15px;
+    margin: 10px;
     border-radius: 10px;
+  }
+  img {
+    width: inherit;
+    height: inherit;
+    object-fit: contain;
   }
   h1 {
     font-size: 28px;
     margin: 0;
+  }
+  p {
+    overflow-wrap: break-word;
   }
 </style>

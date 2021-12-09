@@ -30,7 +30,9 @@ import type { Resource } from "../lib/apis/generated/api";
     border-radius: 50%;
   }
   .thumbnail {
-    min-height: 100%;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
   }
   .description {
     z-index: 1;
@@ -46,5 +48,6 @@ import type { Resource } from "../lib/apis/generated/api";
     margin: 0;
     overflow: hidden;
     padding-left: 5px;
+    font-size: 17px;
   }
 </style>

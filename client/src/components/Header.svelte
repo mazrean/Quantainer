@@ -3,7 +3,7 @@
 </script>
 
 <div class="container">
-  <h1>Quantainer</h1>
+  <a href="/"><h1>Quantainer</h1></a>
   <div class="right">
     <!--<span uk-icon="icon:plus;ratio:1.3" class="icon"></span>
     <span class="span"></span>-->
@@ -18,6 +18,9 @@
     align-items: center;
     justify-content: space-between;
     background-color: #111f4d;
+  }
+  a {
+    text-decoration: none;
   }
   h1 {
     font-size: 28px;

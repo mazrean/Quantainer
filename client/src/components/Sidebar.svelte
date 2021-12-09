@@ -45,7 +45,6 @@
     display: flex;
     align-items: center;
     font-size: 20px;
-    color: #212121;
     border-radius: 10px;
   }
   .span {

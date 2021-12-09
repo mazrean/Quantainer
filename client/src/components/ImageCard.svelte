@@ -45,5 +45,6 @@ import type { Resource } from "../lib/apis/generated/api";
     white-space: nowrap;
     margin: 0;
     overflow: hidden;
+    padding-left: 5px;
   }
 </style>

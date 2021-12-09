@@ -5,6 +5,7 @@
   import { toast } from '@zerodevx/svelte-toast';
   import ImageCard from '../components/ImageCard.svelte';
   import ModalImage from '../components/ModalImage.svelte';
+  import SubTitleWithMore from '../components/SubTitleWithMore.svelte';
 
   let imageResources: Resource[] = [];
   apis.getResources([ResourceType.Image], undefined, undefined, 4, 0).then(r => {
@@ -23,13 +24,19 @@
 </script>
 
 <div class="container">
-  {#each imageResources as imageResource, i}
-    <div class="item">
-      <button class="image-btn" uk-toggle="target: #resource-modal" type="button" on:click={()=>modalResourceID = i}>
-        <ImageCard resource={imageResource} />
-      </button>
+  <div class="group">
+    <SubTitleWithMore title="Latest Images" link="/files?type=image" />
+    <div class="resources">
+      {#each imageResources as imageResource, i}
+        <div class="item">
+          <button class="image-btn" uk-toggle="target: #resource-modal" type="button" on:click={()=>modalResourceID = i}>
+            <ImageCard resource={imageResource} />
+          </button>
+        </div>
+      {/each}
     </div>
-  {/each}
+  </div>
+
   <div id="resource-modal" class="uk-flex-top" uk-modal>
     {#if modalResourceID === 0 || modalResourceID}
       <div class="uk-modal-dialog uk-margin-auto-vertical dialog">
@@ -42,6 +49,16 @@
 
 <style>
   .container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  .group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  .resources {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
@@ -56,6 +73,7 @@
     padding: 0;
     width: 100%;
     height: 100%;
+    cursor: pointer;
   }
   #resource-modal {
     justify-content: center;

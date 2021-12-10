@@ -1,6 +1,5 @@
 <script type="ts">
-import { goto } from "$app/navigation";
-
+  import { goto } from "$app/navigation";
   import type { ModelFile } from "$lib/apis/generated/api";
   import { ResourceType } from "$lib/apis/generated/api";
   import { toast } from "@zerodevx/svelte-toast";
@@ -10,6 +9,8 @@ import { goto } from "$app/navigation";
   import SubTitle from "../../components/SubTitle.svelte";
   import apis from '../../lib/apis/api';
 
+  let fileInput: any;
+
   let file: ModelFile = null;
   const resourceTypes: ResourceType[] = [ResourceType.Image, ResourceType.Other];
 
@@ -17,10 +18,20 @@ import { goto } from "$app/navigation";
   let resourceType: ResourceType = ResourceType.Image;
   let comment: string = "";
 
-  async function uploadFile(e: any) {
-    const uploadFile = e.detail.file;
+  async function selectFileEvent(e: any) {
+    const fileData = e.detail.file;
 
-    const res = (await apis.postFile(uploadFile).catch(err => {
+    await uploadFile(fileData);
+  }
+
+  async function changeFileEvent(e: any) {
+    const fileData = e.target.files[0];
+
+    await uploadFile(fileData);
+  }
+
+  async function uploadFile(fileData: any) {
+    const res = (await apis.postFile(fileData).catch(err => {
       console.log(err);
       toast.push("ファイルのアップロードに失敗しました", {
         theme: {
@@ -71,8 +82,10 @@ import { goto } from "$app/navigation";
     <div class="file-input">
       {#if file}
         <ImageContainer file={file} />
+        <Button label="Change" on:click={()=>fileInput.click()} />
+        <input style="display:none" type="file" on:change={changeFileEvent} bind:this={fileInput} >
       {:else}
-        <FileInput on:fileSelected={uploadFile} />
+        <FileInput on:fileSelected={selectFileEvent} />
       {/if}
     </div>
     <div class="input">

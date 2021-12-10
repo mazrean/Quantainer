@@ -109,6 +109,7 @@
     margin: 0!important;
     width: fit-content;
     height: 100%;
+    display: flex;
     justify-content: center;
     align-items: center;
   }

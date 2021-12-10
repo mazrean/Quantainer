@@ -26,7 +26,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    width: 400px;
+    width: 100%;
     background-color: rgba(17, 31, 77, 0.12);
     border-radius: 10px;
     flex-direction: column;

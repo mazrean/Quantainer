@@ -6,23 +6,43 @@
 </script>
 
 <div class="container">
-  <img src={`/api/v1/files/${resource.fileID}`} alt={resource.name}>
-  <ModalDescription resource={resource} />
+  <div class="img-container">
+    <img src={`/api/v1/files/${resource.fileID}`} alt={resource.name}>
+  </div>
+  <div class="description-container">
+    <ModalDescription resource={resource} />
+  </div>
 </div>
 
 <style>
   .container {
     background-color: transparent;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     width: 100%;
     height: 100%;
   }
+  .img-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    max-width: 700px;
+  }
+  .description-container {
+    width: fit-content;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    margin: 0 5px;
+  }
   img {
-    width: inherit;
-    height: inherit;
     object-fit: contain;
+    max-width: 100%;
+    max-height: 100%;
+    inset: 0;
   }
 </style>

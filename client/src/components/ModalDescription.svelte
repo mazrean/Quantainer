@@ -13,11 +13,11 @@
   .description {
     background-color: #f2f4f7;
     height: fit-content;
-    width: inherit;
     padding: 15px;
-    margin: 10px;
+    margin: auto;
     border-radius: 10px;
-    min-width: 200px;
+    min-width: 50%;
+    max-width: 500px;
   }
   h1 {
     font-size: 28px;

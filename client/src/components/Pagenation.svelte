@@ -46,6 +46,6 @@
   button.disabled {
     color: #757575;
     background-color: transparent;
-    cursor: none;
+    cursor: default;
   }
 </style>

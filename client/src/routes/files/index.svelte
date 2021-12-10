@@ -2,7 +2,7 @@
   /** @type {import('@sveltejs/kit').Load} */
 	export async function load({ page, fetch, session, stuff }) {
     const types = page.query.getAll("type")
-    for (const type in types) {
+    for (const type of types) {
       if (type !== ResourceType.Image && type !== ResourceType.Other) {
         toast.push("ファイルの種類が誤っています", {
           theme: {
@@ -44,7 +44,7 @@
   import { toast } from "@zerodevx/svelte-toast";
   import OtherCard from "../../components/OtherCard.svelte";
   import ImageCard from "../../components/ImageCard.svelte";
-  import ModalImage from "../../components/modalImage.svelte";
+  import ModalImage from "../../components/ModalImage.svelte";
   import SubTitleWithButton from "../../components/SubTitleWithButton.svelte";
   import ModalDescription from "../../components/ModalDescription.svelte";
   import Pagenation from "../../components/Pagenation.svelte";

@@ -1,11 +1,11 @@
 <script type="ts">
   import type { ModelFile } from "../lib/apis/generated/api";
-  export let file: ModelFile;
+  export let fileID: string;
 
 </script>
 
 <div class="img-container">
-  <img src={`/api/v1/files/${file.id}`} alt={file.id}>
+  <img src={`/api/v1/files/${fileID}`} alt={fileID}>
 </div>
 
 <style>

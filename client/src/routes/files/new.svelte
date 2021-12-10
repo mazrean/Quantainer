@@ -71,7 +71,7 @@
           color: '#212121',
         },
       });
-      goto(`/files/${res.data.id}/edit`);
+      goto(`/files/${res.data.id}`);
     }
   }
 </script>
@@ -81,7 +81,7 @@
   <div class="form-container">
     <div class="file-input">
       {#if file}
-        <ImageContainer file={file} />
+        <ImageContainer fileID={file.id} />
         <Button label="Change" on:click={()=>fileInput.click()} />
         <input style="display:none" type="file" on:change={changeFileEvent} bind:this={fileInput} >
       {:else}

@@ -32,7 +32,7 @@
     max-width: 700px;
   }
   .description-container {
-    width: fit-content;
+    width: 100%;
     height: 100%;
     display: flex;
     justify-content: center;

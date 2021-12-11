@@ -6,6 +6,9 @@ on:
       - v*.*.*
     branches-ignore:
       - '**'
+
+env:
+  IMAGE_NAME: quantainer
 jobs:
   client-image:
     name: Build Client Image
@@ -39,8 +42,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/mazrean/${{ github.event.repository.name }}/client:latest
-            ghcr.io/mazrean/${{ github.event.repository.name }}/client:${{ env.IMAGE_TAG }}
+            ghcr.io/mazrean/${{ env.IMAGE_NAME }}-client:latest
+            ghcr.io/mazrean/${{ env.IMAGE_NAME }}-client:${{ env.IMAGE_TAG }}
   server-image:
     name: Build Server Image
     runs-on: ubuntu-latest
@@ -73,8 +76,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/mazrean/${{ github.event.repository.name }}/server:latest
-            ghcr.io/mazrean/${{ github.event.repository.name }}/server:${{ env.IMAGE_TAG }}
+            ghcr.io/mazrean/${{ env.IMAGE_NAME }}-server:latest
+            ghcr.io/mazrean/${{ env.IMAGE_NAME }}-server:${{ env.IMAGE_TAG }}
   deploy-staging:
     name: Deploy staging
     runs-on: ubuntu-latest

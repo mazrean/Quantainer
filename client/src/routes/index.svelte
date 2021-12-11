@@ -76,6 +76,7 @@
   <div class="group">
     <SubTitleWithMore title="Latest Images" link="/files?type=image" />
     <div class="resources">
+      {#if imageResources.length > 0}
       {#each imageResources as imageResource, i}
         <div class="item">
           <button class="btn" type="button" on:click={()=>modalResourceID = i}>
@@ -83,6 +84,9 @@
           </button>
         </div>
       {/each}
+      {:else}
+        No image Files
+      {/if}
     </div>
 
     <div id="resource-modal" class="uk-flex-top" uk-modal>
@@ -105,13 +109,17 @@
   <div class="group">
     <SubTitleWithMore title="Latest Groups" link="/groups" />
     <div class="groups">
-      {#each groups as group}
-        <div class="item">
-          <button class="btn" type="button" on:click={()=>goto(`/groups/${group.id}`)}>
-            <GroupCard group={group} />
-          </button>
-        </div>
-      {/each}
+      {#if groups.length > 0}
+        {#each groups as group}
+          <div class="item">
+            <button class="btn" type="button" on:click={()=>goto(`/groups/${group.id}`)}>
+              <GroupCard group={group} />
+            </button>
+          </div>
+        {/each}
+      {:else}
+        No Groups
+      {/if}
     </div>
   </div>
 </div>

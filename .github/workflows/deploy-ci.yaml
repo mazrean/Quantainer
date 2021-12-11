@@ -97,5 +97,8 @@ jobs:
           OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
         run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} up
         working-directory: ./deploy

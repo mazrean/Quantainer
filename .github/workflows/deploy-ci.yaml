@@ -106,5 +106,5 @@ jobs:
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} compose up
+        run: docker compose up
         working-directory: ./deploy

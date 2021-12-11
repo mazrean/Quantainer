@@ -19,6 +19,7 @@ services:
       OS_PASSWORD:
       OS_TENANT_ID:
       OS_TENANT_NAME:
+      OS_CONTAINER:
       CLIENT_ID:
       CLIENT_SECRET:
       DB_USERNAME: quantainer

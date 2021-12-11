@@ -102,6 +102,7 @@ jobs:
           OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
           OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
           OS_TENANT_NAME: ${{ secrets.OS_TENANT_NAME }}
+          OS_CONTAINER: ${{ secrets.OS_CONTAINER }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}

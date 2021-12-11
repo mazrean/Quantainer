@@ -90,7 +90,7 @@ jobs:
           known_hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
       - uses: actions/checkout@v2
       - name: Pull Images
-        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} pull
+        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} compose pull
         working-directory: ./deploy
       - name: Deploy
         env:
@@ -103,5 +103,5 @@ jobs:
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} up
+        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} compose up
         working-directory: ./deploy

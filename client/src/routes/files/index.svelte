@@ -104,6 +104,7 @@
 <div class="container">
   <SubTitleWithButton title="Files" buttonLabel="New File" link="/files/new" />
   <div class="resources" style="grid-template-rows: repeat({(resources.length+3)/4}, 1fr);">
+    {#if resources.length > 0}
     {#each resources as resource, i}
       <div class="item">
         {#if resource.resourceType === ResourceType.Image}
@@ -117,6 +118,9 @@
         {/if}
       </div>
     {/each}
+    {:else}
+      No Files
+    {/if}
   </div>
 
   <div class="pagenation">

@@ -60,6 +60,7 @@
 <div class="container">
   <SubTitleWithButton title="Groups" buttonLabel="New Group" link="/groups/new" />
   <div class="resources" style="grid-template-rows: repeat({(groups.length+3)/4}, 1fr);">
+    {#if groups.length > 0}
     {#each groups as group}
       <div class="item">
         <button class="btn" type="button" on:click={()=>goto(`/groups/${group.id}`)}>
@@ -67,6 +68,9 @@
         </button>
       </div>
     {/each}
+    {:else}
+      No Groups
+    {/if}
   </div>
 
   <div class="pagenation">

@@ -9,7 +9,7 @@ RUN apk add --update --no-cache openjdk8-jre-base
 COPY ./client/package.json ./client/package-lock.json ./
 RUN --mount=type=cache,target=/usr/src/app/.npm \
   npm set cache /usr/src/app/.npm && \
-  npm ci
+  npm install
 
 COPY ./client/scripts ./scripts
 COPY ./docs /app/docs

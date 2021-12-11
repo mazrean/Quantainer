@@ -101,10 +101,11 @@ jobs:
           OS_USERNAME: ${{ secrets.OS_USERNAME }}
           OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
           OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
+          OS_TENANT_NAME: ${{ secrets.OS_TENANT_NAME }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-        run: docker compose up
+        run: docker compose up -d
         working-directory: ./deploy

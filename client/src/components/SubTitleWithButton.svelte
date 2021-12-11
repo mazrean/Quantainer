@@ -21,7 +21,7 @@
     display: inline-flex;
     flex-direction: row;
     align-items: flex-end;
-    padding: 0 16px;
+    padding: 0;
   }
   span {
     height: 100%;

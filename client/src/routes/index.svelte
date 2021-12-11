@@ -1,12 +1,13 @@
 <script type="ts">
   import apis from '../lib/apis/api';
-  import { GroupInfo, Resource, ResourceType } from '../lib/apis/generated/api';
+  import { GroupInfo, Resource, ResourceType, WritePermission } from '../lib/apis/generated/api';
   import { toast } from '@zerodevx/svelte-toast';
   import ImageCard from '../components/ImageCard.svelte';
   import GroupCard from '../components/GroupCard.svelte';
   import ModalImage from '../components/ModalImage.svelte';
   import SubTitleWithMore from '../components/SubTitleWithMore.svelte';
   import { goto } from '$app/navigation';
+  import ModalAddGroup from '../components/ModalAddGroup.svelte';
 
   let imageResources: Resource[] = [];
   apis.getResources([ResourceType.Image], undefined, undefined, 4, 0).then(r => {
@@ -34,7 +35,41 @@
     });
   });
 
+  let writableGroups: GroupInfo[] = [];
+  apis.getGroups(undefined, undefined, undefined, 0).then(r => {
+    writableGroups = r.data.filter(g => g.writePermission === WritePermission.Public);
+  }).catch(err => {
+    console.log(err);
+    toast.push("グループ一覧の取得に失敗しました", {
+      theme: {
+        background: '#e43a19',
+        color: '#212121',
+      },
+    });
+  });
+
   let modalResourceID: number;
+  let selectedResource: Resource;
+
+  async function addResourceEvent(e: any) {
+    await apis.postResourceToGroup(e.detail.groupID, selectedResource.id).then(r => {
+      toast.push("グループに追加しました", {
+        theme: {
+          background: '#4caf50',
+          color: '#212121',
+        },
+      });
+      goto(`/groups/${e.detail.groupID}`);
+    }).catch(err => {
+      console.log(err);
+      toast.push("ファイルのグループへの追加に失敗しました", {
+        theme: {
+          background: '#e43a19',
+          color: '#212121',
+        },
+      });
+    });
+  }
 </script>
 
 <div class="container">
@@ -43,8 +78,8 @@
     <div class="resources">
       {#each imageResources as imageResource, i}
         <div class="item">
-          <button class="btn" uk-toggle="target: #resource-modal" type="button" on:click={()=>modalResourceID = i}>
-            <ImageCard resource={imageResource} />
+          <button class="btn" type="button" on:click={()=>modalResourceID = i}>
+            <ImageCard resource={imageResource} on:group={e=>{selectedResource=e.detail.resource}} />
           </button>
         </div>
       {/each}
@@ -57,6 +92,13 @@
           <ModalImage resource={imageResources[modalResourceID]} />
         </div>
       {/if}
+    </div>
+
+    <div id="group-modal" class="uk-flex-top" uk-modal>
+      <div class="uk-modal-dialog uk-margin-auto-vertical dialog">
+        <button class="uk-modal-close-outside" type="button" uk-close="target: #group-modal"></button>
+        <ModalAddGroup groups={writableGroups} on:add={addResourceEvent} />
+      </div>
     </div>
   </div>
 

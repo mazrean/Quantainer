@@ -8,5 +8,6 @@
   h2 {
     margin: 0;
     font-size: 40px;
+    overflow-wrap: anywhere;
   }
 </style>

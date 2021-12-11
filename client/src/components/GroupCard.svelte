@@ -60,5 +60,6 @@
     padding: 0 5px;
     height: 36px;
     font-size: 17px;
+    overflow-wrap: anywhere;
   }
 </style>

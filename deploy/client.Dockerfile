@@ -21,6 +21,7 @@ RUN npm run build
 FROM caddy:2.4.6-alpine
 
 COPY --from=build /app/client/build/ ./
+COPY ./deploy/Caddyfile /etc/caddy/Caddyfile
 
-ENTRYPOINT ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+ENTRYPOINT ["caddy"]
 CMD ["run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

@@ -90,10 +90,13 @@ jobs:
           known_hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
       - uses: actions/checkout@v2
       - name: Pull Images
-        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} compose pull
+        env:
+          DOCKER_HOST: ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+        run: docker compose pull
         working-directory: ./deploy
       - name: Deploy
         env:
+          DOCKER_HOST: ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
           OS_AUTH_URL: ${{ secrets.OS_AUTH_URL }}
           OS_USERNAME: ${{ secrets.OS_USERNAME }}
           OS_PASSWORD: ${{ secrets.OS_PASSWORD }}

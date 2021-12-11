@@ -181,9 +181,9 @@
           <button class="btn" type="button" on:click={()=>next(i)}>
             <div class="card-wrapper {resourceItems[i].status}">
               {#if resourceItem.resource.resourceType === ResourceType.Image}
-                <ImageCard resource={resourceItem.resource} />
+                <ImageCard addable={false} modal={false} resource={resourceItem.resource} />
               {:else}
-                <OtherCard resource={resourceItem.resource} />
+                <OtherCard addable={false} modal={false} resource={resourceItem.resource} />
               {/if}
             </div>
           </button>

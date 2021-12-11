@@ -57,7 +57,7 @@
 
 <script type="ts">
   import apis from "$lib/apis/api";
-  import { GroupDetail, GroupInfo, Resource, ResourceType } from "$lib/apis/generated/api";
+  import { GroupDetail, GroupInfo, Resource, ResourceType, WritePermission } from "$lib/apis/generated/api";
   import { toast } from "@zerodevx/svelte-toast";
   import OtherCard from "../../../components/OtherCard.svelte";
   import ImageCard from "../../../components/ImageCard.svelte";
@@ -72,6 +72,8 @@
   export let resources: Resource[];
   export let groups: GroupInfo[];
   export let pageNum: number;
+
+  groups = groups.filter(g => g.writePermission === WritePermission.Public);
 
   if (pageNum == 1) {
     resources = [group.mainResource, ...resources]

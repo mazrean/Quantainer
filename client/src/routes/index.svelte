@@ -1,6 +1,6 @@
 <script type="ts">
   import apis from '../lib/apis/api';
-  import { GroupInfo, Resource, ResourceType } from '../lib/apis/generated/api';
+  import { GroupInfo, Resource, ResourceType, WritePermission } from '../lib/apis/generated/api';
   import { toast } from '@zerodevx/svelte-toast';
   import ImageCard from '../components/ImageCard.svelte';
   import GroupCard from '../components/GroupCard.svelte';
@@ -25,6 +25,19 @@
   let groups: GroupInfo[] = [];
   apis.getGroups(undefined, undefined, 4, 0).then(r => {
     groups = r.data;
+  }).catch(err => {
+    console.log(err);
+    toast.push("グループ一覧の取得に失敗しました", {
+      theme: {
+        background: '#e43a19',
+        color: '#212121',
+      },
+    });
+  });
+
+  let writableGroups: GroupInfo[] = [];
+  apis.getGroups(undefined, undefined, undefined, 0).then(r => {
+    writableGroups = r.data.filter(g => g.writePermission === WritePermission.Public);
   }).catch(err => {
     console.log(err);
     toast.push("グループ一覧の取得に失敗しました", {
@@ -84,7 +97,7 @@
     <div id="group-modal" class="uk-flex-top" uk-modal>
       <div class="uk-modal-dialog uk-margin-auto-vertical dialog">
         <button class="uk-modal-close-outside" type="button" uk-close="target: #group-modal"></button>
-        <ModalAddGroup groups={groups} on:add={addResourceEvent} />
+        <ModalAddGroup groups={writableGroups} on:add={addResourceEvent} />
       </div>
     </div>
   </div>

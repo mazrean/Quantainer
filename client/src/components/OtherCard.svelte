@@ -4,6 +4,8 @@
   import { createEventDispatcher } from "svelte";
 
   export let resource: Resource;
+  export let addable = true;
+  export let modal = true;
 
   let userName: string = "";
   user.subscribe(user => {
@@ -25,13 +27,19 @@
 
 <div class="container uk-cover-container uk-card">
   <div class="sizer"></div>
+  {#if modal}
   <div class="uk-cover file-icon" uk-toggle="target: #resource-modal">
     <span uk-icon="icon:file-text;ratio:5" />
   </div>
+  {:else}
+  <div class="uk-cover file-icon">
+    <span uk-icon="icon:file-text;ratio:5" />
+  </div>
+  {/if}
   <div class="description">
     <img class="icon" src={`https://q.trap.jp/api/v3/public/icon/${resource.creator}`} alt={resource.creator} />
     <p>{resource.name}</p>
-    {#if resource.creator === userName}
+    {#if addable && resource.creator === userName}
     <button uk-icon="icon:plus;ratio:1.3" uk-toggle="target: #group-modal" on:click={addGroup} />
     {/if}
   </div>
@@ -70,6 +78,7 @@
     overflow: hidden;
     padding-left: 5px;
     font-size: 17px;
+    overflow-wrap: anywhere;
   }
   .file-icon {
     background-color: rgba(17, 31, 77, 0.12);

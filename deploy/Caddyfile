@@ -1,0 +1,20 @@
+quantainer.mazrean.com {
+  root * /usr/share/caddy
+
+  file_server {
+    precompressed br gzip
+  }
+
+  header {
+    Strict-Transport-Security "max-age=31536000;"
+    X-Robots-Tag "none"
+  }
+
+  handle /api* {
+    reverse_proxy server:3000
+  }
+
+  handle {
+    try_files {path} /
+  }
+}

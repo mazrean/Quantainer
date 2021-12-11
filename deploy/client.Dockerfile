@@ -11,6 +11,7 @@ RUN --mount=type=cache,target=/usr/src/app/.npm \
   npm set cache /usr/src/app/.npm && \
   npm ci
 
+COPY ./scripts ./scripts
 RUN npm run gen-api
 
 COPY . .

@@ -214,7 +214,8 @@ func (r *Resource) GetResources(ctx context.Context, params *repository.Resource
 	query := db.
 		Session(&gorm.Session{}).
 		Joins("ResourceType").
-		Joins("File")
+		Joins("File").
+		Order("resources.created_at DESC")
 
 	if len(resourceTypeNames) != 0 {
 		query = query.Where("ResourceType.name IN ?", resourceTypeNames)

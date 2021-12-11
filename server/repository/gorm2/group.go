@@ -512,7 +512,8 @@ func (g *Group) GetGroups(ctx context.Context, user *service.UserInfo, params *r
 		Preload("MainResource").
 		Preload("MainResource.ResourceType").
 		Preload("MainResource.File").
-		Preload("MainResource.File.FileType")
+		Preload("MainResource.File.FileType").
+		Order("groups.created_at DESC")
 
 	if len(params.GroupTypes) != 0 {
 		groupTypeNames := make([]string, 0, len(params.GroupTypes))

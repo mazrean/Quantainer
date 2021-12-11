@@ -176,6 +176,7 @@
     </div>
   {:else}
     <div class="resources" style="grid-template-rows: repeat({(resourceItems.length+4)/5}, 1fr);">
+      {#if resourceItems.length > 0}
       {#each resourceItems as resourceItem, i}
         <div class="item">
           <button class="btn" type="button" on:click={()=>next(i)}>
@@ -189,6 +190,9 @@
           </button>
         </div>
       {/each}
+      {:else}
+        No Files
+      {/if}
     </div>
 
     <div class="pagenation">

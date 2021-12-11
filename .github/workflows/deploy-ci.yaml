@@ -1,0 +1,101 @@
+name: Deploy
+
+on: 
+  push:
+    tags:
+      - v*.*.*
+    branches-ignore:
+      - '**'
+jobs:
+  client-image:
+    name: Build Client Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set IMAGE_TAG env
+        run: echo "IMAGE_TAG=$(echo ${GITHUB_REF:11})" >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Show available platforms
+        run: echo ${{ steps.buildx.outputs.platforms }}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: mazrean
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./client
+          file: ../deploy/client.Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ghcr.io/mazrean/${{ github.event.repository.name }}/client:latest
+            ghcr.io/mazrean/${{ github.event.repository.name }}/client:${{ env.IMAGE_TAG }}
+  server-image:
+    name: Build Server Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set IMAGE_TAG env
+        run: echo "IMAGE_TAG=$(echo ${GITHUB_REF:11})" >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Show available platforms
+        run: echo ${{ steps.buildx.outputs.platforms }}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: mazrean
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./server
+          file: ../deploy/server.Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ghcr.io/mazrean/${{ github.event.repository.name }}/server:latest
+            ghcr.io/mazrean/${{ github.event.repository.name }}/server:${{ env.IMAGE_TAG }}
+  deploy-staging:
+    name: Deploy staging
+    runs-on: ubuntu-latest
+    needs: [client-image, server-image]
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      - uses: actions/checkout@v2
+      - name: Pull Images
+        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} pull
+        working-directory: ./deploy
+      - name: Deploy
+        env:
+          OS_AUTH_URL: ${{ secrets.OS_AUTH_URL }}
+          OS_USERNAME: ${{ secrets.OS_USERNAME }}
+          OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+          OS_TENANT_ID: ${{ secrets.OS_TENANT_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+        run: docker -H ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} up
+        working-directory: ./deploy

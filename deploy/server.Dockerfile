@@ -6,12 +6,18 @@ RUN apk add --update --no-cache git
 
 WORKDIR /go/src/github.com/mazrean/quauntainer
 
+RUN --mount=type=cache,target=/root/.cache/go-build \
+  go install github.com/golang/mock/mockgen@v1.6.0
+RUN --mount=type=cache,target=/root/.cache/go-build \
+  go install github.com/google/wire/cmd/wire@0.5.0
+
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
   go mod download
 
 COPY . .
-RUN go generate ./... \
+RUN go generate ./...
+RUN --mount=type=cache,target=/root/.cache/go-build \
   && go build -o quantainer -ldflags "-s -w"
 
 FROM alpine:3.15.0

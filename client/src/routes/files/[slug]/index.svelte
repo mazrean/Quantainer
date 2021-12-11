@@ -24,21 +24,12 @@
 
 <script type="ts">
   import type { Resource } from "$lib/apis/generated/api";
-  import { ResourceType } from "$lib/apis/generated/api";
   import { toast } from "@zerodevx/svelte-toast";
   import ImageContainer from "../../../components/ImageContainer.svelte";
   import SubTitle from "../../../components/SubTitle.svelte";
   import apis from '../../../lib/apis/api';
 
   export let resource: Resource;
-
-  let fileInput: any;
-
-  const resourceTypes: ResourceType[] = [ResourceType.Image, ResourceType.Other];
-
-  let name: string = resource.name;
-  let resourceType: ResourceType = resource.resourceType;
-  let comment: string = resource.comment;
 </script>
 
 <div class="container">

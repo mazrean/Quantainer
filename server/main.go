@@ -139,7 +139,7 @@ func main() {
 		AccessToken:       common.AccessToken(accessToken),
 		VerificationToken: common.VerificationToken(verificationToken),
 		DefaultChannels:   common.DefaultChannels(strings.Split(defaultChannels, ",")),
-		UpdatedAt:         common.UpdatedAt(time.Now().Add(-time.Hour * 24 * 365 * 3)),
+		UpdatedAt:         common.UpdatedAt(time.Now()),
 	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to inject API: %v", err))

@@ -109,5 +109,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          VERIFICATION_TOKEN: ${{ secrets.VERIFICATION_TOKEN }}
         run: docker compose up -d
         working-directory: ./deploy

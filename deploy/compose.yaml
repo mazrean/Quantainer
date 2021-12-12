@@ -29,6 +29,9 @@ services:
       DB_DATABASE: quantainer
       SESSION_SECRET:
       ADDR: :3000
+      ACCESS_TOKEN:
+      VERIFICATION_TOKEN:
+      DEFAULT_CHANNELS: 858ae414-21ec-40d8-be6a-012620db8edf
   mariadb:
     image: mariadb:10.5.2
     environment:

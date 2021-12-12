@@ -19,6 +19,9 @@ services:
       DB_DATABASE: quantainer
       SESSION_SECRET: secret
       ADDR: :3000
+      ACCESS_TOKEN:
+      VERIFICATION_TOKEN:
+      DEFAULT_CHANNELS: 858ae414-21ec-40d8-be6a-012620db8edf
     ports: 
       - 3000:3000
   mariadb:

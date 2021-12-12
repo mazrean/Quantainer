@@ -42,7 +42,7 @@
 
     return {
       props: {
-        resources,
+        resources: resources ? resources : [],
         groups,
         pageNum,
         types,

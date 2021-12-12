@@ -93,6 +93,7 @@ type getUsersResponse struct {
 func (u *User) GetAllActiveUsers(ctx context.Context, session *domain.OIDCSession) ([]*service.UserInfo, error) {
 	path := *u.baseURL
 	path.Path += "/users"
+	path.RawQuery = "include-suspended=true"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path.String(), nil)
 	if err != nil {

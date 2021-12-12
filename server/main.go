@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/comail/colog"
 	"github.com/mazrean/Quantainer/pkg/common"
@@ -105,24 +107,45 @@ func main() {
 		swiftContainer = common.SwiftContainer(strSwiftContainer)
 	}
 
-	api, err := InjectAPI(&Config{
-		IsProduction:    common.IsProduction(isProduction),
-		SessionKey:      "sessions",
-		SessionSecret:   common.SessionSecret(secret),
-		TraQBaseURL:     common.TraQBaseURL(traQBaseURL),
-		OAuthClientID:   common.ClientID(clientID),
-		SwiftAuthURL:    swiftAuthURL,
-		SwiftUserName:   swiftUserName,
-		SwiftPassword:   swiftPassword,
-		SwiftTenantID:   swiftTenantID,
-		SwiftTenantName: swiftTenantName,
-		SwiftContainer:  swiftContainer,
-		FilePath:        common.FilePath(filePath),
-		HttpClient:      http.DefaultClient,
+	accessToken, ok := os.LookupEnv("ACCESS_TOKEN")
+	if !ok {
+		panic("ENV ACCESS_TOKEN is not set")
+	}
+
+	verificationToken, ok := os.LookupEnv("VERIFICATION_TOKEN")
+	if !ok {
+		panic("ENV VERIFICATION_TOKEN is not set")
+	}
+
+	defaultChannels, ok := os.LookupEnv("DEFAULT_CHANNELS")
+	if !ok {
+		panic("ENV DEFAULT_CHANNELS is not set")
+	}
+
+	service, err := InjectService(&Config{
+		IsProduction:      common.IsProduction(isProduction),
+		SessionKey:        "sessions",
+		SessionSecret:     common.SessionSecret(secret),
+		TraQBaseURL:       common.TraQBaseURL(traQBaseURL),
+		OAuthClientID:     common.ClientID(clientID),
+		SwiftAuthURL:      swiftAuthURL,
+		SwiftUserName:     swiftUserName,
+		SwiftPassword:     swiftPassword,
+		SwiftTenantID:     swiftTenantID,
+		SwiftTenantName:   swiftTenantName,
+		SwiftContainer:    swiftContainer,
+		FilePath:          common.FilePath(filePath),
+		HttpClient:        http.DefaultClient,
+		AccessToken:       common.AccessToken(accessToken),
+		VerificationToken: common.VerificationToken(verificationToken),
+		DefaultChannels:   common.DefaultChannels(strings.Split(defaultChannels, ",")),
+		UpdatedAt:         common.UpdatedAt(time.Now().Add(-time.Hour * 24 * 365 * 3)),
 	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to inject API: %v", err))
 	}
+
+	api := service.API
 
 	addr, ok := os.LookupEnv("ADDR")
 	if !ok {

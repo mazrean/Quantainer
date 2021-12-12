@@ -9,6 +9,7 @@ import (
 	"github.com/google/wire"
 	"github.com/mazrean/Quantainer/auth"
 	traq "github.com/mazrean/Quantainer/auth/traQ"
+	bot "github.com/mazrean/Quantainer/bot/traq"
 	"github.com/mazrean/Quantainer/cache"
 	"github.com/mazrean/Quantainer/cache/ristretto"
 	v1Handler "github.com/mazrean/Quantainer/handler/v1"
@@ -23,19 +24,23 @@ import (
 )
 
 type Config struct {
-	IsProduction    common.IsProduction
-	SessionKey      common.SessionKey
-	SessionSecret   common.SessionSecret
-	TraQBaseURL     common.TraQBaseURL
-	OAuthClientID   common.ClientID
-	SwiftAuthURL    common.SwiftAuthURL
-	SwiftUserName   common.SwiftUserName
-	SwiftPassword   common.SwiftPassword
-	SwiftTenantID   common.SwiftTenantID
-	SwiftTenantName common.SwiftTenantName
-	SwiftContainer  common.SwiftContainer
-	FilePath        common.FilePath
-	HttpClient      *http.Client
+	IsProduction      common.IsProduction
+	SessionKey        common.SessionKey
+	SessionSecret     common.SessionSecret
+	TraQBaseURL       common.TraQBaseURL
+	OAuthClientID     common.ClientID
+	SwiftAuthURL      common.SwiftAuthURL
+	SwiftUserName     common.SwiftUserName
+	SwiftPassword     common.SwiftPassword
+	SwiftTenantID     common.SwiftTenantID
+	SwiftTenantName   common.SwiftTenantName
+	SwiftContainer    common.SwiftContainer
+	FilePath          common.FilePath
+	AccessToken       common.AccessToken
+	VerificationToken common.VerificationToken
+	DefaultChannels   common.DefaultChannels
+	UpdatedAt         common.UpdatedAt
+	HttpClient        *http.Client
 }
 
 type Storage struct {
@@ -49,19 +54,23 @@ func newStorage(file storage.File) *Storage {
 }
 
 var (
-	isProductionField    = wire.FieldsOf(new(*Config), "IsProduction")
-	sessionKeyField      = wire.FieldsOf(new(*Config), "SessionKey")
-	sessionSecretField   = wire.FieldsOf(new(*Config), "SessionSecret")
-	traQBaseURLField     = wire.FieldsOf(new(*Config), "TraQBaseURL")
-	oAuthClientIDField   = wire.FieldsOf(new(*Config), "OAuthClientID")
-	swiftAuthURLField    = wire.FieldsOf(new(*Config), "SwiftAuthURL")
-	swiftUserNameField   = wire.FieldsOf(new(*Config), "SwiftUserName")
-	swiftPasswordField   = wire.FieldsOf(new(*Config), "SwiftPassword")
-	swiftTenantIDField   = wire.FieldsOf(new(*Config), "SwiftTenantID")
-	swiftTenantNameField = wire.FieldsOf(new(*Config), "SwiftTenantName")
-	swiftContainerField  = wire.FieldsOf(new(*Config), "SwiftContainer")
-	filePathField        = wire.FieldsOf(new(*Config), "FilePath")
-	httpClientField      = wire.FieldsOf(new(*Config), "HttpClient")
+	isProductionField      = wire.FieldsOf(new(*Config), "IsProduction")
+	sessionKeyField        = wire.FieldsOf(new(*Config), "SessionKey")
+	sessionSecretField     = wire.FieldsOf(new(*Config), "SessionSecret")
+	traQBaseURLField       = wire.FieldsOf(new(*Config), "TraQBaseURL")
+	oAuthClientIDField     = wire.FieldsOf(new(*Config), "OAuthClientID")
+	swiftAuthURLField      = wire.FieldsOf(new(*Config), "SwiftAuthURL")
+	swiftUserNameField     = wire.FieldsOf(new(*Config), "SwiftUserName")
+	swiftPasswordField     = wire.FieldsOf(new(*Config), "SwiftPassword")
+	swiftTenantIDField     = wire.FieldsOf(new(*Config), "SwiftTenantID")
+	swiftTenantNameField   = wire.FieldsOf(new(*Config), "SwiftTenantName")
+	swiftContainerField    = wire.FieldsOf(new(*Config), "SwiftContainer")
+	filePathField          = wire.FieldsOf(new(*Config), "FilePath")
+	accessTokenField       = wire.FieldsOf(new(*Config), "AccessToken")
+	verificationTokenField = wire.FieldsOf(new(*Config), "VerificationToken")
+	defaultChannelsField   = wire.FieldsOf(new(*Config), "DefaultChannels")
+	updatedAtField         = wire.FieldsOf(new(*Config), "UpdatedAt")
+	httpClientField        = wire.FieldsOf(new(*Config), "HttpClient")
 )
 
 func injectedStorage(config *Config) (*Storage, error) {
@@ -123,7 +132,19 @@ var (
 	fileField = wire.FieldsOf(new(*Storage), "File")
 )
 
-func InjectAPI(config *Config) (*v1Handler.API, error) {
+type Service struct {
+	*v1Handler.API
+	*bot.Bot
+}
+
+func NewService(api *v1Handler.API, b *bot.Bot) *Service {
+	return &Service{
+		API: api,
+		Bot: b,
+	}
+}
+
+func InjectService(config *Config) (*Service, error) {
 	wire.Build(
 		isProductionField,
 		sessionKeyField,
@@ -132,6 +153,10 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		oAuthClientIDField,
 		httpClientField,
 		fileField,
+		accessTokenField,
+		verificationTokenField,
+		defaultChannelsField,
+		updatedAtField,
 		dbBind,
 		fileRepositoryBind,
 		resourceRepositoryBind,
@@ -167,7 +192,9 @@ func InjectAPI(config *Config) (*v1Handler.API, error) {
 		v1Handler.NewFile,
 		v1Handler.NewResource,
 		v1Handler.NewGroup,
+		bot.NewBot,
 		injectedStorage,
+		NewService,
 	)
 	return nil, nil
 }

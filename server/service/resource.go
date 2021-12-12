@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/mazrean/Quantainer/domain"
 	"github.com/mazrean/Quantainer/domain/values"
@@ -15,6 +16,15 @@ type Resource interface {
 		name values.ResourceName,
 		resourceType values.ResourceType,
 		comment values.ResourceComment,
+	) (*ResourceInfo, error)
+	CreateBotResource(
+		ctx context.Context,
+		user *UserInfo,
+		fileID values.FileID,
+		name values.ResourceName,
+		resourceType values.ResourceType,
+		comment values.ResourceComment,
+		createdAt time.Time,
 	) (*ResourceInfo, error)
 	GetResource(ctx context.Context, session *domain.OIDCSession, resourceID values.ResourceID) (*ResourceInfo, error)
 	GetResources(ctx context.Context, session *domain.OIDCSession, params *ResourceSearchParams) ([]*ResourceInfo, error)

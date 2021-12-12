@@ -96,6 +96,62 @@ func (r *Resource) CreateResource(
 	}, nil
 }
 
+func (r *Resource) CreateBotResource(
+	ctx context.Context,
+	user *service.UserInfo,
+	fileID values.FileID,
+	name values.ResourceName,
+	resourceType values.ResourceType,
+	comment values.ResourceComment,
+	createdAt time.Time,
+) (*service.ResourceInfo, error) {
+	var fileInfo *repository.FileWithCreator
+
+	var resource *domain.Resource
+	err := r.dbRepository.Transaction(ctx, nil, func(ctx context.Context) error {
+		var err error
+		fileInfo, err = r.fileRepository.GetFile(ctx, fileID, repository.LockTypeRecord)
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			return service.ErrNoFile
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get file: %w", err)
+		}
+
+		if fileInfo.Creator != user.GetID() {
+			return service.ErrForbidden
+		}
+
+		if !fileInfo.File.GetType().IsValidResourceType(resourceType) {
+			return service.ErrInvalidResourceType
+		}
+
+		resource = domain.NewResource(
+			values.NewResourceID(),
+			name,
+			resourceType,
+			comment,
+			createdAt,
+		)
+
+		err = r.resourceRepository.SaveResource(ctx, fileID, resource)
+		if err != nil {
+			return fmt.Errorf("failed to save resource: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	return &service.ResourceInfo{
+		Resource: resource,
+		File:     fileInfo.File,
+		Creator:  user,
+	}, nil
+}
+
 func (r *Resource) GetResource(ctx context.Context, session *domain.OIDCSession, resourceID values.ResourceID) (*service.ResourceInfo, error) {
 	resourceInfo, err := r.resourceRepository.GetResource(ctx, resourceID)
 	if errors.Is(err, repository.ErrRecordNotFound) {

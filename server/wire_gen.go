@@ -10,6 +10,7 @@ import (
 	"github.com/google/wire"
 	"github.com/mazrean/Quantainer/auth"
 	"github.com/mazrean/Quantainer/auth/traQ"
+	"github.com/mazrean/Quantainer/bot/traq"
 	"github.com/mazrean/Quantainer/cache"
 	"github.com/mazrean/Quantainer/cache/ristretto"
 	"github.com/mazrean/Quantainer/handler/v1"
@@ -54,7 +55,7 @@ func injectLocalStorage(config *Config) (*Storage, error) {
 	return storage, nil
 }
 
-func InjectAPI(config *Config) (*v1.API, error) {
+func InjectService(config *Config) (*Service, error) {
 	sessionKey := config.SessionKey
 	sessionSecret := config.SessionSecret
 	session := v1.NewSession(sessionKey, sessionSecret)
@@ -103,25 +104,38 @@ func InjectAPI(config *Config) (*v1.API, error) {
 	v1Group := v1_2.NewGroup(db, resource, group, administrator, userUtils)
 	group2 := v1.NewGroup(session, checker, v1Group)
 	api := v1.NewAPI(user2, oAuth2, session, file2, resource2, group2)
-	return api, nil
+	accessToken := config.AccessToken
+	verificationToken := config.VerificationToken
+	defaultChannels := config.DefaultChannels
+	updatedAt := config.UpdatedAt
+	botBot, err := bot.NewBot(accessToken, verificationToken, defaultChannels, updatedAt, v1File, v1Resource)
+	if err != nil {
+		return nil, err
+	}
+	service := NewService(api, botBot)
+	return service, nil
 }
 
 // wire.go:
 
 type Config struct {
-	IsProduction    common.IsProduction
-	SessionKey      common.SessionKey
-	SessionSecret   common.SessionSecret
-	TraQBaseURL     common.TraQBaseURL
-	OAuthClientID   common.ClientID
-	SwiftAuthURL    common.SwiftAuthURL
-	SwiftUserName   common.SwiftUserName
-	SwiftPassword   common.SwiftPassword
-	SwiftTenantID   common.SwiftTenantID
-	SwiftTenantName common.SwiftTenantName
-	SwiftContainer  common.SwiftContainer
-	FilePath        common.FilePath
-	HttpClient      *http.Client
+	IsProduction      common.IsProduction
+	SessionKey        common.SessionKey
+	SessionSecret     common.SessionSecret
+	TraQBaseURL       common.TraQBaseURL
+	OAuthClientID     common.ClientID
+	SwiftAuthURL      common.SwiftAuthURL
+	SwiftUserName     common.SwiftUserName
+	SwiftPassword     common.SwiftPassword
+	SwiftTenantID     common.SwiftTenantID
+	SwiftTenantName   common.SwiftTenantName
+	SwiftContainer    common.SwiftContainer
+	FilePath          common.FilePath
+	AccessToken       common.AccessToken
+	VerificationToken common.VerificationToken
+	DefaultChannels   common.DefaultChannels
+	UpdatedAt         common.UpdatedAt
+	HttpClient        *http.Client
 }
 
 type Storage struct {
@@ -135,19 +149,23 @@ func newStorage(file storage.File) *Storage {
 }
 
 var (
-	isProductionField    = wire.FieldsOf(new(*Config), "IsProduction")
-	sessionKeyField      = wire.FieldsOf(new(*Config), "SessionKey")
-	sessionSecretField   = wire.FieldsOf(new(*Config), "SessionSecret")
-	traQBaseURLField     = wire.FieldsOf(new(*Config), "TraQBaseURL")
-	oAuthClientIDField   = wire.FieldsOf(new(*Config), "OAuthClientID")
-	swiftAuthURLField    = wire.FieldsOf(new(*Config), "SwiftAuthURL")
-	swiftUserNameField   = wire.FieldsOf(new(*Config), "SwiftUserName")
-	swiftPasswordField   = wire.FieldsOf(new(*Config), "SwiftPassword")
-	swiftTenantIDField   = wire.FieldsOf(new(*Config), "SwiftTenantID")
-	swiftTenantNameField = wire.FieldsOf(new(*Config), "SwiftTenantName")
-	swiftContainerField  = wire.FieldsOf(new(*Config), "SwiftContainer")
-	filePathField        = wire.FieldsOf(new(*Config), "FilePath")
-	httpClientField      = wire.FieldsOf(new(*Config), "HttpClient")
+	isProductionField      = wire.FieldsOf(new(*Config), "IsProduction")
+	sessionKeyField        = wire.FieldsOf(new(*Config), "SessionKey")
+	sessionSecretField     = wire.FieldsOf(new(*Config), "SessionSecret")
+	traQBaseURLField       = wire.FieldsOf(new(*Config), "TraQBaseURL")
+	oAuthClientIDField     = wire.FieldsOf(new(*Config), "OAuthClientID")
+	swiftAuthURLField      = wire.FieldsOf(new(*Config), "SwiftAuthURL")
+	swiftUserNameField     = wire.FieldsOf(new(*Config), "SwiftUserName")
+	swiftPasswordField     = wire.FieldsOf(new(*Config), "SwiftPassword")
+	swiftTenantIDField     = wire.FieldsOf(new(*Config), "SwiftTenantID")
+	swiftTenantNameField   = wire.FieldsOf(new(*Config), "SwiftTenantName")
+	swiftContainerField    = wire.FieldsOf(new(*Config), "SwiftContainer")
+	filePathField          = wire.FieldsOf(new(*Config), "FilePath")
+	accessTokenField       = wire.FieldsOf(new(*Config), "AccessToken")
+	verificationTokenField = wire.FieldsOf(new(*Config), "VerificationToken")
+	defaultChannelsField   = wire.FieldsOf(new(*Config), "DefaultChannels")
+	updatedAtField         = wire.FieldsOf(new(*Config), "UpdatedAt")
+	httpClientField        = wire.FieldsOf(new(*Config), "HttpClient")
 )
 
 func injectedStorage(config *Config) (*Storage, error) {
@@ -178,3 +196,15 @@ var (
 
 	fileField = wire.FieldsOf(new(*Storage), "File")
 )
+
+type Service struct {
+	*v1.API
+	*bot.Bot
+}
+
+func NewService(api *v1.API, b *bot.Bot) *Service {
+	return &Service{
+		API: api,
+		Bot: b,
+	}
+}

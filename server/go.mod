@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/comail/colog v0.0.0-20160416085026-fba8e7b1f46c
 	github.com/deepmap/oapi-codegen v1.9.0
-	github.com/getkin/kin-openapi v0.85.0
+	github.com/getkin/kin-openapi v0.86.0
 	github.com/golang/mock v1.6.0
 	github.com/google/wire v0.5.0
 	github.com/ncw/swift/v2 v2.0.1
@@ -58,6 +58,5 @@ require (
 	github.com/labstack/echo-contrib v0.11.0
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

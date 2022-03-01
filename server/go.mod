@@ -12,7 +12,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/djherbis/fscache.v0 v0.10.1
 	gorm.io/driver/mysql v1.2.1
-	gorm.io/gorm v1.22.4
+	gorm.io/gorm v1.23.2
 )
 
 require (
@@ -28,7 +28,7 @@ require (
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.3 // indirect
+	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect

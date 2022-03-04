@@ -38,7 +38,7 @@ jobs:
         working-directory: ./server
       - run: go generate ./...
         working-directory: ./server
-      - uses: actions/upload-artifact@v2.3.0
+      - uses: actions/upload-artifact@v3
         with:
           name: mockGenerated
           path: ./server
@@ -107,7 +107,7 @@ jobs:
         with:
           file: ./coverage.txt
           yml: ./codecov.yml
-      - uses: actions/upload-artifact@v2.3.0
+      - uses: actions/upload-artifact@v3
         with:
           name: coverage.txt
           path: coverage.txt

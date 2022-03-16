@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/wire v0.5.0
 	github.com/ncw/swift/v2 v2.0.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	gopkg.in/djherbis/fscache.v0 v0.10.1
 	gorm.io/driver/mysql v1.2.1
 	gorm.io/gorm v1.22.4

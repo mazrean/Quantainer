@@ -20,7 +20,7 @@ RUN go generate ./...
 RUN --mount=type=cache,target=/root/.cache/go-build \
   go build -o quantainer -ldflags "-s -w"
 
-FROM alpine:3.15.0
+FROM alpine:3.15.1
 
 WORKDIR /go/src/github.com/mazrean/quauntainer
 
